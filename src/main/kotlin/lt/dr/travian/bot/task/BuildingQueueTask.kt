@@ -226,14 +226,6 @@ class BuildingQueueTask(
             ResourceFieldQueueRequest(7, 7),
             ResourceFieldQueueRequest(10, 7),
             ResourceFieldQueueRequest(11, 7),
-
-            // crop to lvl 7
-            ResourceFieldQueueRequest(2, 7),
-            ResourceFieldQueueRequest(8, 7),
-            ResourceFieldQueueRequest(9, 7),
-            ResourceFieldQueueRequest(15, 7),
-            ResourceFieldQueueRequest(12, 7),
-            ResourceFieldQueueRequest(13, 7),
         )
 
         private val BUILD_ORDER_GROUPS = setOf(

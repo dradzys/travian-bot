@@ -1,5 +1,10 @@
 # Travian bot for personal use.
 
+### How to run:
+
+* `./gradlew clean build`
+* `java -jar ./build/libs/TravianBot-1.0-SNAPSHOT.jar`
+
 TODOs:
 
 * [ ] implicit and explicit waits should not be used together at the same time
