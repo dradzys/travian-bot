@@ -1,15 +1,12 @@
 package lt.dr.travian.bot.task
 
+import lt.dr.travian.bot.DRIVER
+import lt.dr.travian.bot.FLUENT_WAIT
 import lt.dr.travian.bot.TRAVIAN_SERVER
-import lt.dr.travian.bot.auth.AuthService
-import lt.dr.travian.bot.fluentWait
 import org.openqa.selenium.By.ByCssSelector
 import org.openqa.selenium.By.ByXPath
-import org.openqa.selenium.chrome.ChromeDriver
-import org.openqa.selenium.support.ui.Wait
 import org.slf4j.LoggerFactory
 import java.time.LocalTime
-import java.util.*
 
 sealed interface ArmyQueueRequest {
     val troopId: String
@@ -34,12 +31,7 @@ data class ArmyOrderGroup(
     val armyOrder: Set<ArmyQueueRequest>,
 )
 
-class ArmyQueueTask(
-    private val driver: ChromeDriver,
-    private val wait: Wait<ChromeDriver> = driver.fluentWait(),
-    private val authService: AuthService,
-    private val timer: Timer
-) : RuntimeVariableTimerTask(authService, timer) {
+class ArmyQueueTask : RescheduledTimerTask() {
 
     override fun isOnCoolDown() = false
 
@@ -52,14 +44,14 @@ class ArmyQueueTask(
 
     override fun scheduleDelay(): Long = getRandomDelay()
 
-    override fun clone(): RuntimeVariableTimerTask {
-        return ArmyQueueTask(driver = driver, authService = authService, timer = timer)
+    override fun clone(): RescheduledTimerTask {
+        return ArmyQueueTask()
     }
 
     private fun processArmyOrderGroup(armyOrderGroup: ArmyOrderGroup) {
         armyOrderGroup.armyOrder.forEach { armyQueueRequest ->
-            driver.get("$TRAVIAN_SERVER/dorf2.php?newdid=${armyOrderGroup.villageId}")
-            val armyBuildingSlot = driver.findElements(
+            DRIVER.get("$TRAVIAN_SERVER/dorf2.php?newdid=${armyOrderGroup.villageId}")
+            val armyBuildingSlot = DRIVER.findElements(
                 ByXPath("//*[@data-name=\"${armyQueueRequest.buildingName}\"]")
             ).firstOrNull()
             val armyBuildingLink = armyBuildingSlot?.findElements(
@@ -71,14 +63,14 @@ class ArmyQueueTask(
     }
 
     private fun queueArmy(armyQueueRequest: ArmyQueueRequest) {
-        val troopInputElement = driver.findElement(
+        val troopInputElement = DRIVER.findElement(
             ByXPath("//*[@name=\"${armyQueueRequest.troopId}\"]")
         )
-        wait.until { troopInputElement.isDisplayed }
+        FLUENT_WAIT.until { troopInputElement.isDisplayed }
         if (troopInputElement.isEnabled) {
             troopInputElement.clear()
             troopInputElement.sendKeys(armyQueueRequest.amount.toString())
-            val trainButton = driver.findElement(ByXPath("//button[@value=\"ok\"]"))
+            val trainButton = DRIVER.findElement(ByXPath("//button[@value=\"ok\"]"))
             trainButton.click()
             LOGGER.info("$armyQueueRequest queued")
         } else {
@@ -88,7 +80,7 @@ class ArmyQueueTask(
 
     private fun getTroopCreationTimeInMillis(troopId: String): Long {
         return kotlin.runCatching {
-            val troopCreationTime = driver.findElement(ByXPath("//*[@data-troopid=\"$troopId\"]"))
+            val troopCreationTime = DRIVER.findElement(ByXPath("//*[@data-troopid=\"$troopId\"]"))
                 .findElement(ByCssSelector(".duration span")).text
             timeToMillis(troopCreationTime)
         }.getOrNull() ?: getRandomDelay()

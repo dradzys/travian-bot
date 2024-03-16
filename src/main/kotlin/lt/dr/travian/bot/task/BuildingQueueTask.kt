@@ -1,15 +1,12 @@
 package lt.dr.travian.bot.task
 
+import lt.dr.travian.bot.DRIVER
+import lt.dr.travian.bot.FLUENT_WAIT
 import lt.dr.travian.bot.TRAVIAN_SERVER
-import lt.dr.travian.bot.auth.AuthService
-import lt.dr.travian.bot.fluentWait
 import org.openqa.selenium.By.ByCssSelector
 import org.openqa.selenium.By.ByXPath
 import org.openqa.selenium.WebElement
-import org.openqa.selenium.chrome.ChromeDriver
-import org.openqa.selenium.support.ui.Wait
 import org.slf4j.LoggerFactory
-import java.util.*
 
 data class BuildingSlot(
     val id: Int?,
@@ -48,12 +45,7 @@ data class BuildingQueueRequest(
 
 data class BuildOrderGroup(val villageId: Int, val buildOrder: Set<BuildQueueRequest>)
 
-class BuildingQueueTask(
-    private val driver: ChromeDriver,
-    private val wait: Wait<ChromeDriver> = driver.fluentWait(),
-    private val authService: AuthService,
-    private val timer: Timer
-) : RuntimeVariableTimerTask(authService, timer) {
+class BuildingQueueTask : RescheduledTimerTask() {
     override fun isOnCoolDown() = false
 
     override fun doWork() {
@@ -68,8 +60,8 @@ class BuildingQueueTask(
 
     override fun scheduleDelay(): Long = getRandomDelay()
 
-    override fun clone(): RuntimeVariableTimerTask {
-        return BuildingQueueTask(driver = driver, authService = authService, timer = timer)
+    override fun clone(): RescheduledTimerTask {
+        return BuildingQueueTask()
     }
 
     private fun processBuildOrderGroup(buildOrderGroup: BuildOrderGroup) {
@@ -79,8 +71,8 @@ class BuildingQueueTask(
     }
 
     private fun isQueueRunning(villageId: Int): Boolean {
-        driver.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
-        return driver.findElements(ByXPath("//*[@class=\"buildingList\"]")).isNotEmpty()
+        DRIVER.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
+        return DRIVER.findElements(ByXPath("//*[@class=\"buildingList\"]")).isNotEmpty()
     }
 
     private fun upgrade(buildQueueRequest: BuildQueueRequest, buildOrderGroup: BuildOrderGroup) {
@@ -94,9 +86,9 @@ class BuildingQueueTask(
         buildingQueueRequest: BuildingQueueRequest,
         buildOrderGroup: BuildOrderGroup
     ) {
-        driver.get("$TRAVIAN_SERVER/dorf2.php?newdid=${buildOrderGroup.villageId}")
+        DRIVER.get("$TRAVIAN_SERVER/dorf2.php?newdid=${buildOrderGroup.villageId}")
         val dataNameSelector = ByXPath("//*[@data-name=\"${buildingQueueRequest.name}\"]")
-        driver.findElements(dataNameSelector)
+        DRIVER.findElements(dataNameSelector)
             .map { it.findElement(ByCssSelector("a")) }
             .firstOrNull { buildingSlotLink ->
                 val buildingId = getBuildingId(buildingSlotLink)
@@ -121,7 +113,7 @@ class BuildingQueueTask(
         val resourceField =
             getResourceFieldById(resourceFieldQueueRequest.id, buildOrderGroup.villageId)
         if (!resourceFieldQueueRequest.canLevelUp(resourceField)) return
-        driver.get("$TRAVIAN_SERVER/build.php?newdid=${buildOrderGroup.villageId}&id=${resourceField.id}")
+        DRIVER.get("$TRAVIAN_SERVER/build.php?newdid=${buildOrderGroup.villageId}&id=${resourceField.id}")
         levelUpBuilding()
         LOGGER.info("${resourceFieldQueueRequest.id} queued")
     }
@@ -132,8 +124,8 @@ class BuildingQueueTask(
     }
 
     private fun getResourceFields(villageId: Int): List<BuildingSlot> {
-        driver.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
-        val resourceFieldLinks = driver.findElements(
+        DRIVER.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
+        val resourceFieldLinks = DRIVER.findElements(
             ByXPath("//*[@id=\"resourceFieldContainer\"]/a")
         )
         return resourceFieldLinks
@@ -154,10 +146,10 @@ class BuildingQueueTask(
     }
 
     private fun levelUpBuilding() {
-        val upgradeButton = driver.findElements(
+        val upgradeButton = DRIVER.findElements(
             ByXPath("//*[@class=\"section1\"]/button")
         ).firstOrNull() ?: return
-        wait.until { upgradeButton.isDisplayed }
+        FLUENT_WAIT.until { upgradeButton.isDisplayed }
         upgradeButton.click()
     }
 

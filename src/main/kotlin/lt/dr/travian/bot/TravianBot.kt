@@ -14,31 +14,30 @@ import java.time.Duration
 import java.util.*
 import kotlin.system.exitProcess
 
-
 private val LOGGER = LoggerFactory.getLogger("TravianBot")
 const val TRAVIAN_SERVER = "https://ts20.x2.europe.travian.com"
+val TIMER = Timer()
+val DRIVER = buildChromeDrive()
+val FLUENT_WAIT = DRIVER.fluentWait()
 
 fun main() {
-    val driver = configureChromeDriver()
-    val authService = AuthService(driver)
-    if (authService.isUnAuthenticated()) {
+    if (AuthService.getInstance().isUnAuthenticated()) {
         LOGGER.error("Authentication Failure. Make sure you provide correct credentials and travian server.")
-        driver.quit()
+        DRIVER.quit()
         exitProcess(-1)
     }
 
-    val timer = Timer()
     setOf(
-        RaidTask(driver = driver, authService = authService, timer = timer),
-        BuildingQueueTask(driver = driver, authService = authService, timer = timer),
-        ArmyQueueTask(driver = driver, authService = authService, timer = timer),
+        RaidTask(),
+        BuildingQueueTask(),
+        ArmyQueueTask(),
     ).asSequence().shuffled().forEach {
-        timer.schedule(it, 1000L)
+        TIMER.schedule(it, 1000L)
     }
     Thread.currentThread().join()
 }
 
-private fun configureChromeDriver(): ChromeDriver {
+private fun buildChromeDrive(): ChromeDriver {
     val options = ChromeOptions()
     options.addArguments(
         "start-maximized",
@@ -46,12 +45,15 @@ private fun configureChromeDriver(): ChromeDriver {
         "no-default-browser-check",
         "disable-extensions",
         "disable-infobars",
-//        "--headless=new",
+        // "--headless=new",
     )
     options.setExperimentalOption("excludeSwitches", arrayOf("enable-automation"))
     options.setExperimentalOption(
         "prefs",
-        mapOf("credentials_enable_service" to false, "profile.password_manager_enabled" to false)
+        mapOf(
+            "credentials_enable_service" to false,
+            "profile.password_manager_enabled" to false
+        )
     )
 
     val driver = ChromeDriver(options)
@@ -59,7 +61,7 @@ private fun configureChromeDriver(): ChromeDriver {
     return driver
 }
 
-fun ChromeDriver.fluentWait(): Wait<ChromeDriver> {
+private fun ChromeDriver.fluentWait(): Wait<ChromeDriver> {
     return FluentWait(this)
         .withTimeout(Duration.ofSeconds(5))
         .pollingEvery(Duration.ofMillis((300L..500L).random()))

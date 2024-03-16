@@ -1,22 +1,30 @@
 package lt.dr.travian.bot.auth
 
+import lt.dr.travian.bot.DRIVER
+import lt.dr.travian.bot.FLUENT_WAIT
 import lt.dr.travian.bot.TRAVIAN_SERVER
-import lt.dr.travian.bot.fluentWait
 import org.openqa.selenium.By.ByXPath
-import org.openqa.selenium.chrome.ChromeDriver
-import org.openqa.selenium.support.ui.Wait
 import org.slf4j.LoggerFactory
 
-class AuthService(
-    private val driver: ChromeDriver,
-    private val wait: Wait<ChromeDriver> = driver.fluentWait(),
-    private val credentials: Credentials = CredentialService.getCredentials(),
-) {
+class AuthService private constructor() {
+
+    companion object {
+        @Volatile
+        private var instance: AuthService? = null
+        private val LOGGER = LoggerFactory.getLogger(this::class.java)
+        private val credentials = CredentialService.getCredentials()
+
+        fun getInstance(): AuthService {
+            return instance ?: synchronized(this) {
+                AuthService().also { instance = it }
+            }
+        }
+    }
 
     private val loginButtonXpath = ByXPath("//button[@value=\"Login\"]")
 
     fun isUnAuthenticated(): Boolean {
-        driver.get(TRAVIAN_SERVER)
+        DRIVER.get(TRAVIAN_SERVER)
         inputUsername()
         inputPassword()
         login()
@@ -30,35 +38,35 @@ class AuthService(
     }
 
     private fun inputUsername() {
-        val userNameInput = driver.findElement(
+        val userNameInput = DRIVER.findElement(
             ByXPath("//input[@name=\"name\"]")
         )
-        wait.until { userNameInput.isDisplayed && userNameInput.isEnabled }
+        FLUENT_WAIT.until { userNameInput.isDisplayed && userNameInput.isEnabled }
         userNameInput.clear()
         userNameInput.sendKeys(credentials.username)
     }
 
     private fun inputPassword() {
-        val passwordInput = driver.findElement(
+        val passwordInput = DRIVER.findElement(
             ByXPath("//input[@name=\"password\"]")
         )
-        wait.until { passwordInput.isDisplayed && passwordInput.isEnabled }
+        FLUENT_WAIT.until { passwordInput.isDisplayed && passwordInput.isEnabled }
         passwordInput.clear()
         passwordInput.sendKeys(credentials.password)
     }
 
     private fun login() {
-        val loginButton = driver.findElement(loginButtonXpath)
-        wait.until { loginButton.isDisplayed && loginButton.isEnabled }
+        val loginButton = DRIVER.findElement(loginButtonXpath)
+        FLUENT_WAIT.until { loginButton.isDisplayed && loginButton.isEnabled }
         loginButton.click()
     }
 
     private fun hasAuthErrors(): Boolean {
-        return driver.findElements(ByXPath("//*[@id=\"error.LTR\"]")).isNotEmpty()
+        return DRIVER.findElements(ByXPath("//*[@id=\"error.LTR\"]")).isNotEmpty()
     }
 
     private fun isLoggedOut(): Boolean {
-        return driver.currentUrl == TRAVIAN_SERVER || driver.findElements(loginButtonXpath)
+        return DRIVER.currentUrl == TRAVIAN_SERVER || DRIVER.findElements(loginButtonXpath)
             .isNotEmpty()
     }
 
@@ -69,7 +77,4 @@ class AuthService(
         login()
     }
 
-    companion object {
-        private val LOGGER = LoggerFactory.getLogger(this::class.java)
-    }
 }

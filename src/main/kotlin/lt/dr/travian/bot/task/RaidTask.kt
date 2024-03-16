@@ -1,8 +1,8 @@
 package lt.dr.travian.bot.task
 
+import lt.dr.travian.bot.DRIVER
+import lt.dr.travian.bot.FLUENT_WAIT
 import lt.dr.travian.bot.TRAVIAN_SERVER
-import lt.dr.travian.bot.auth.AuthService
-import lt.dr.travian.bot.fluentWait
 import lt.dr.travian.bot.task.RaidUnitType.OASIS
 import lt.dr.travian.bot.task.RaidUnitType.VILLAGE
 import org.openqa.selenium.By.ByCssSelector
@@ -10,11 +10,8 @@ import org.openqa.selenium.By.ById
 import org.openqa.selenium.By.ByLinkText
 import org.openqa.selenium.By.ByXPath
 import org.openqa.selenium.WebElement
-import org.openqa.selenium.chrome.ChromeDriver
-import org.openqa.selenium.support.ui.Wait
 import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
-import java.util.*
 
 enum class RaidUnitType { OASIS, VILLAGE }
 
@@ -51,12 +48,7 @@ data class RaidUnit(
 
 data class RaidUnitGroup(val villageId: Int, val raidUnitSet: Set<RaidUnit>)
 
-class RaidTask(
-    private val driver: ChromeDriver,
-    private val wait: Wait<ChromeDriver> = driver.fluentWait(),
-    private val authService: AuthService,
-    private val timer: Timer
-) : RuntimeVariableTimerTask(authService, timer) {
+class RaidTask : RescheduledTimerTask() {
 
     override fun isOnCoolDown() = false
 
@@ -84,8 +76,8 @@ class RaidTask(
     override fun scheduleDelay() =
         RESCHEDULE_RANGE_MILLIS.random() + RANDOM_ADDITIONAL_RANGE_MILLIS.random()
 
-    override fun clone(): RuntimeVariableTimerTask {
-        return RaidTask(driver = driver, authService = authService, timer = timer)
+    override fun clone(): RescheduledTimerTask {
+        return RaidTask()
     }
 
     private fun troopsMissing(villageId: Int): Boolean {
@@ -94,11 +86,11 @@ class RaidTask(
     }
 
     private fun getTroops(villageId: Int): List<Pair<String, Int>> {
-        driver.get("$TRAVIAN_SERVER/build.php?newdid=$villageId&id=39&gid=16&tt=1&filter=3")
-        val troopOverviewWebElement = driver.findElements(
+        DRIVER.get("$TRAVIAN_SERVER/build.php?newdid=$villageId&id=39&gid=16&tt=1&filter=3")
+        val troopOverviewWebElement = DRIVER.findElements(
             ByXPath("//*[@id=\"build\"]/div/table[1]/tbody[2]/tr/td")
         )
-        wait.until { troopOverviewWebElement.firstOrNull { it.isDisplayed } ?: true }
+        FLUENT_WAIT.until { troopOverviewWebElement.firstOrNull { it.isDisplayed } ?: true }
         return troopOverviewWebElement.mapIndexed { index, webElement ->
             index.toString() to webElement.text.toInt()
         }
@@ -123,8 +115,8 @@ class RaidTask(
     }
 
     private fun raidVillage(raidUnit: RaidUnit, villageId: Int): Boolean {
-        driver.get("$TRAVIAN_SERVER/karte.php?x=${raidUnit.x}&y=${raidUnit.y}&newdid=$villageId")
-        val villageInfoElement = driver.findElement(ById("village_info"))
+        DRIVER.get("$TRAVIAN_SERVER/karte.php?x=${raidUnit.x}&y=${raidUnit.y}&newdid=$villageId")
+        val villageInfoElement = DRIVER.findElement(ById("village_info"))
         villageInfoElement?.let {
             val villageTribe = villageInfoElement.findElements(
                 ByCssSelector(".first td")
@@ -137,7 +129,7 @@ class RaidTask(
                 LOGGER.info("$raidUnit: Natars village found, skipping raiding. You should consider removing it from raid list")
                 return true
             }
-            val sendTroopsLink = driver.findElements(ByLinkText("Send troops")).firstOrNull()
+            val sendTroopsLink = DRIVER.findElements(ByLinkText("Send troops")).firstOrNull()
             if (sendTroopsLink != null && sendTroopsLink.isEnabled) {
                 return raidAndGetTroopsLeftOver(sendTroopsLink, raidUnit)
             } else {
@@ -149,25 +141,25 @@ class RaidTask(
 
     private fun raidAndGetTroopsLeftOver(raidUnitLink: WebElement, raidUnit: RaidUnit): Boolean {
         raidUnitLink.click()
-        val ttInputField = driver.findElement(
+        val ttInputField = DRIVER.findElement(
             ByXPath("//*[@id=\"troops\"]/tbody/tr[1]/td[2]/input")
         )
-        wait.until { ttInputField.isDisplayed }
+        FLUENT_WAIT.until { ttInputField.isDisplayed }
         return if (ttInputField.isEnabled) {
             ttInputField.sendKeys(raidUnit.troopAmount.toString())
-            val raidRadioInput = driver.findElements(ByXPath("//*[@value=\"4\"]")).firstOrNull()
+            val raidRadioInput = DRIVER.findElements(ByXPath("//*[@value=\"4\"]")).firstOrNull()
             if (raidRadioInput == null) {
                 LOGGER.warn("Raid radio input not found! $raidUnit")
                 return true
             }
             raidRadioInput.click()
-            val okButton = driver.findElement(ByXPath("//*[@id=\"ok\"]"))
-            wait.until { okButton.isDisplayed }
+            val okButton = DRIVER.findElement(ByXPath("//*[@id=\"ok\"]"))
+            FLUENT_WAIT.until { okButton.isDisplayed }
             okButton.click()
 
             val confirmButton =
-                driver.findElement(ByXPath("//*[@id=\"rallyPointButtonsContainer\"]/button[3]"))
-            wait.until { confirmButton.isDisplayed }
+                DRIVER.findElement(ByXPath("//*[@id=\"rallyPointButtonsContainer\"]/button[3]"))
+            FLUENT_WAIT.until { confirmButton.isDisplayed }
             confirmButton.click()
             LOGGER.info("$raidUnit sent")
             raidUnit.lastSent = LocalDateTime.now()
@@ -180,9 +172,9 @@ class RaidTask(
 
     private fun isOasisRaidable(x: Int, y: Int, villageId: Int): Boolean {
         return kotlin.runCatching {
-            driver.get("$TRAVIAN_SERVER/karte.php?x=$x&y=$y&newdid=$villageId")
-            val oasisTroopElement = driver.findElement(ByCssSelector("#troop_info td"))
-            wait.until { oasisTroopElement.isDisplayed }
+            DRIVER.get("$TRAVIAN_SERVER/karte.php?x=$x&y=$y&newdid=$villageId")
+            val oasisTroopElement = DRIVER.findElement(ByCssSelector("#troop_info td"))
+            FLUENT_WAIT.until { oasisTroopElement.isDisplayed }
             return oasisTroopElement.text == "none"
         }.onFailure {
             LOGGER.error("Oasis check failed for ($x|$y) ${it.message}", it)
@@ -191,7 +183,7 @@ class RaidTask(
     }
 
     private fun findOasisRaidLink(): WebElement? {
-        return driver.findElements(ByLinkText("Raid unoccupied oasis")).firstOrNull()
+        return DRIVER.findElements(ByLinkText("Raid unoccupied oasis")).firstOrNull()
     }
 
     companion object {
