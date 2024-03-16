@@ -23,6 +23,11 @@ sealed interface BuildQueueRequest {
     var wantedLevelReached: Boolean
 
     fun canLevelUp(buildingSlot: BuildingSlot): Boolean {
+        if (buildingSlot.level != null && buildingSlot.level >= this.wantedLevel) {
+            this.wantedLevelReached = true
+        } else if (buildingSlot.isUnderConstruction && (buildingSlot.level != null && buildingSlot.level >= this.wantedLevel - 1)) {
+            this.wantedLevelReached = true
+        }
         return buildingSlot.hasEnoughResources
                 && !buildingSlot.isUnderConstruction
                 && (buildingSlot.level != null && buildingSlot.level < this.wantedLevel)
@@ -48,48 +53,51 @@ class BuildingQueueTask(
     private val wait: Wait<ChromeDriver> = driver.fluentWait(),
     private val authService: AuthService,
     private val timer: Timer
-) : RuntimeVariableTimerTask(authService, BuildingQueueTask::class.java) {
-
+) : RuntimeVariableTimerTask(authService, timer) {
     override fun isOnCoolDown() = false
 
     override fun doWork() {
-        driver.get("$TRAVIAN_SERVER/dorf1.php")
-        BUILD_ORDER_GROUPS.forEach { processBuildOrderGroup(it) }
+        BUILD_ORDER_GROUPS.forEach {
+            LOGGER.info("Processing village:${it.villageId}")
+            if (isQueueRunning(it.villageId)) {
+                return@forEach
+            }
+            processBuildOrderGroup(it)
+        }
     }
 
-    override fun reSchedule() {
-        val delay = calculateDelayFromBuildQueueOrGetRandomDelay()
-        timer.schedule(
-            BuildingQueueTask(driver = driver, authService = authService, timer = timer),
-            delay,
-        )
-        LOGGER.info("${this::class.java.simpleName} scheduled at delay: $delay")
+    override fun scheduleDelay(): Long = getRandomDelay()
+
+    override fun clone(): RuntimeVariableTimerTask {
+        return BuildingQueueTask(driver = driver, authService = authService, timer = timer)
     }
 
     private fun processBuildOrderGroup(buildOrderGroup: BuildOrderGroup) {
         buildOrderGroup.buildOrder.filter { !it.wantedLevelReached }.forEach {
-            if (isQueueRunning()) {
-                return@forEach
-            }
-            upgrade(it)
+            upgrade(it, buildOrderGroup)
         }
     }
 
-    private fun isQueueRunning(): Boolean = driver.findElements(
-        ByXPath("//*[@class=\"buildingList\"]")
-    ).isNotEmpty()
+    private fun isQueueRunning(villageId: Int): Boolean {
+        driver.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
+        return driver.findElements(ByXPath("//*[@class=\"buildingList\"]")).isNotEmpty()
+    }
 
-    private fun upgrade(buildQueueRequest: BuildQueueRequest) {
+    private fun upgrade(buildQueueRequest: BuildQueueRequest, buildOrderGroup: BuildOrderGroup) {
         when (buildQueueRequest) {
-            is BuildingQueueRequest -> upgradeBuilding(buildQueueRequest)
-            is ResourceFieldQueueRequest -> upgradeResourceField(buildQueueRequest)
+            is BuildingQueueRequest -> upgradeBuilding(buildQueueRequest, buildOrderGroup)
+            is ResourceFieldQueueRequest -> upgradeResourceField(buildQueueRequest, buildOrderGroup)
         }
     }
 
-    private fun upgradeBuilding(buildingQueueRequest: BuildingQueueRequest) {
-        driver.get("$TRAVIAN_SERVER/dorf2.php")
-        val dataNameSelector = ByXPath("//*[@data-name=\"${buildingQueueRequest.name}\"/a]")
-        val buildingSlotLink = driver.findElements(dataNameSelector)
+    private fun upgradeBuilding(
+        buildingQueueRequest: BuildingQueueRequest,
+        buildOrderGroup: BuildOrderGroup
+    ) {
+        driver.get("$TRAVIAN_SERVER/dorf2.php?newdid=${buildOrderGroup.villageId}")
+        val dataNameSelector = ByXPath("//*[@data-name=\"${buildingQueueRequest.name}\"]")
+        driver.findElements(dataNameSelector)
+            .map { it.findElement(ByCssSelector("a")) }
             .firstOrNull { buildingSlotLink ->
                 val buildingId = getBuildingId(buildingSlotLink)
                 val level = buildingSlotLink.getAttribute("data-level")?.toInt()
@@ -99,28 +107,32 @@ class BuildingQueueTask(
                     buildingId, level, hasEnoughResources, isUnderConstruction
                 )
                 buildingQueueRequest.canLevelUp(buildingSlot)
+            }?.let { link ->
+                link.click()
+                levelUpBuilding()
+                LOGGER.info("${buildingQueueRequest.name} queued")
             }
-        buildingSlotLink?.let { link ->
-            link.click()
-            levelUpBuilding(buildingQueueRequest)
-        }
     }
 
-    private fun upgradeResourceField(resourceFieldQueueRequest: ResourceFieldQueueRequest) {
-        val resourceField = getResourceFieldById(resourceFieldQueueRequest.id)
+    private fun upgradeResourceField(
+        resourceFieldQueueRequest: ResourceFieldQueueRequest,
+        buildOrderGroup: BuildOrderGroup
+    ) {
+        val resourceField =
+            getResourceFieldById(resourceFieldQueueRequest.id, buildOrderGroup.villageId)
         if (!resourceFieldQueueRequest.canLevelUp(resourceField)) return
-        driver.get("$TRAVIAN_SERVER/build.php?id=${resourceField.id}")
-        levelUpBuilding(resourceFieldQueueRequest)
-        LOGGER.info("$resourceFieldQueueRequest queued")
+        driver.get("$TRAVIAN_SERVER/build.php?newdid=${buildOrderGroup.villageId}&id=${resourceField.id}")
+        levelUpBuilding()
+        LOGGER.info("${resourceFieldQueueRequest.id} queued")
     }
 
-    private fun getResourceFieldById(id: Int): BuildingSlot {
-        return getResourceFields().firstOrNull { it.id != null && it.id == id }
+    private fun getResourceFieldById(id: Int, villageId: Int): BuildingSlot {
+        return getResourceFields(villageId).firstOrNull { it.id != null && it.id == id }
             ?: throw IllegalStateException("NotFound")
     }
 
-    private fun getResourceFields(): List<BuildingSlot> {
-        driver.get("$TRAVIAN_SERVER/dorf1.php")
+    private fun getResourceFields(villageId: Int): List<BuildingSlot> {
+        driver.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
         val resourceFieldLinks = driver.findElements(
             ByXPath("//*[@id=\"resourceFieldContainer\"]/a")
         )
@@ -141,13 +153,12 @@ class BuildingQueueTask(
             .filter { it.id != null && it.level != null }
     }
 
-    private fun levelUpBuilding(buildingQueueRequest: BuildQueueRequest) {
+    private fun levelUpBuilding() {
         val upgradeButton = driver.findElements(
             ByXPath("//*[@class=\"section1\"]/button")
         ).firstOrNull() ?: return
         wait.until { upgradeButton.isDisplayed }
         upgradeButton.click()
-        buildingQueueRequest.wantedLevelReached = true
     }
 
     private fun getBuildingId(buildingLink: WebElement): Int? {
@@ -185,54 +196,42 @@ class BuildingQueueTask(
         return resourceFieldWebElement.getAttribute("class")?.split(" ") ?: emptyList()
     }
 
-    private fun calculateDelayFromBuildQueueOrGetRandomDelay(): Long {
-        val buildDurationElement = driver.findElements(
-            ByXPath("//*[@class=\"buildDuration\"]")
-        ).firstOrNull()
-        return buildDurationElement?.let {
-            val timerElement = it.findElements(ByCssSelector(".timer")).firstOrNull()
-            val timerValueSeconds = timerElement?.getAttribute("value")?.toLong()
-            timerValueSeconds?.times(1000L)
-        } ?: getRandomDelay()
-    }
-
     private fun getRandomDelay(): Long {
-        LOGGER.info("Using random delay, instead of build queue end delay")
         return RESCHEDULE_RANGE_MILLIS.random() + RANDOM_ADDITIONAL_RANGE_MILLIS.random()
     }
 
     companion object {
         private val LOGGER = LoggerFactory.getLogger(this::class.java)
         private val FIRST_VILLAGE_BUILD_ORDER = setOf(
-            // crop to lvl 6
-            ResourceFieldQueueRequest(15, 6),
-            ResourceFieldQueueRequest(12, 6),
-            ResourceFieldQueueRequest(13, 6),
-
-            // clay to lvl 7
-            ResourceFieldQueueRequest(5, 7),
-            ResourceFieldQueueRequest(6, 7),
-            ResourceFieldQueueRequest(16, 7),
-            ResourceFieldQueueRequest(18, 7),
-
-            // woodcutter to lvl 7
-            ResourceFieldQueueRequest(1, 7),
-            ResourceFieldQueueRequest(3, 7),
-            ResourceFieldQueueRequest(14, 7),
-            ResourceFieldQueueRequest(17, 7),
-
-            // iron to lvl 7
-            ResourceFieldQueueRequest(4, 7),
-            ResourceFieldQueueRequest(7, 7),
-            ResourceFieldQueueRequest(10, 7),
-            ResourceFieldQueueRequest(11, 7),
+            BuildingQueueRequest("Warehouse", 16),
+            ResourceFieldQueueRequest(1, 10),
+            ResourceFieldQueueRequest(2, 10),
+            ResourceFieldQueueRequest(3, 10),
+            ResourceFieldQueueRequest(4, 10, wantedLevelReached = true),
+            ResourceFieldQueueRequest(5, 10, wantedLevelReached = true),
+            ResourceFieldQueueRequest(6, 10),
+            ResourceFieldQueueRequest(7, 10),
+            ResourceFieldQueueRequest(8, 10),
+            ResourceFieldQueueRequest(9, 10),
+            ResourceFieldQueueRequest(10, 10),
+            ResourceFieldQueueRequest(11, 10),
+            ResourceFieldQueueRequest(12, 10),
+            ResourceFieldQueueRequest(13, 10),
+            ResourceFieldQueueRequest(14, 10),
+            ResourceFieldQueueRequest(15, 10),
+            ResourceFieldQueueRequest(16, 10),
+            ResourceFieldQueueRequest(17, 10),
+            ResourceFieldQueueRequest(18, 10),
         )
+        private val CAPITAL_VILLAGE_BUILD_ORDER = emptySet<BuildQueueRequest>()
 
         private val BUILD_ORDER_GROUPS = setOf(
-            BuildOrderGroup(18614, FIRST_VILLAGE_BUILD_ORDER)
+            BuildOrderGroup(18614, FIRST_VILLAGE_BUILD_ORDER),
+            BuildOrderGroup(22111, CAPITAL_VILLAGE_BUILD_ORDER),
         )
 
-        private val RESCHEDULE_RANGE_MILLIS = (600_000L..1200_000L)
+        // 7 to 15 minutes
+        private val RESCHEDULE_RANGE_MILLIS = (450_000L..900_000L)
         private val RANDOM_ADDITIONAL_RANGE_MILLIS = (1111L..5555L)
     }
 }

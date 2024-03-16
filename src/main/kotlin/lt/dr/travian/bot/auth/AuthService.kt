@@ -20,17 +20,10 @@ class AuthService(
         return login()
     }
 
-    fun isLoggedOut(): Boolean {
-        return driver.currentUrl == TRAVIAN_SERVER || driver.findElements(
-            ByXPath("//*[@id=\"loginForm\"]/tbody/tr[5]/td[2]/button")
-        ).isNotEmpty()
-    }
-
-    fun reAuthenticate() {
-        LOGGER.info("Attempting to reAuthenticate")
-        inputUsername()
-        inputPassword()
-        login()
+    fun authenticate() {
+        if (this.isLoggedOut()) {
+            this.reAuthenticate()
+        }
     }
 
     private fun inputUsername() {
@@ -58,6 +51,19 @@ class AuthService(
         wait.until { loginButton.isDisplayed && loginButton.isEnabled }
         loginButton.click()
         return driver.findElements(ByXPath("//*[@id=\"error.LTR\"]")).isNotEmpty()
+    }
+
+    private fun isLoggedOut(): Boolean {
+        return driver.currentUrl == TRAVIAN_SERVER || driver.findElements(
+            ByXPath("//*[@id=\"loginForm\"]/tbody/tr[5]/td[2]/button")
+        ).isNotEmpty()
+    }
+
+    private fun reAuthenticate() {
+        LOGGER.info("Attempting to reAuthenticate")
+        inputUsername()
+        inputPassword()
+        login()
     }
 
     companion object {

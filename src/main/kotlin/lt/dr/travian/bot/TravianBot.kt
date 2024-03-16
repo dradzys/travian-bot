@@ -1,6 +1,7 @@
 package lt.dr.travian.bot
 
 import lt.dr.travian.bot.auth.AuthService
+import lt.dr.travian.bot.task.ArmyQueueTask
 import lt.dr.travian.bot.task.BuildingQueueTask
 import lt.dr.travian.bot.task.RaidTask
 import org.openqa.selenium.ElementNotInteractableException
@@ -29,7 +30,7 @@ fun main() {
     setOf(
         RaidTask(driver = driver, authService = authService, timer = timer),
         BuildingQueueTask(driver = driver, authService = authService, timer = timer),
-//        ArmyQueueTask(driver = driver, authService = authService, timer = timer),
+        ArmyQueueTask(driver = driver, authService = authService, timer = timer),
     ).asSequence().shuffled().forEach {
         timer.schedule(it, 1000L)
     }
@@ -39,6 +40,7 @@ fun main() {
 
 private fun configureChromeDriver(): ChromeDriver {
     val options = ChromeOptions()
+//    options.addArguments("--headless=new")
     options.addArguments("start-maximized")
     options.addArguments("mute-audio")
     options.addArguments("no-default-browser-check")

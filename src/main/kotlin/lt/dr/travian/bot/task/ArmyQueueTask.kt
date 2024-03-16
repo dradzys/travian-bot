@@ -29,18 +29,36 @@ data class StableQueue(
     override val amount: Int,
 ) : ArmyQueueRequest
 
+data class ArmyOrderGroup(
+    val villageId: Int,
+    val armyOrder: Set<ArmyQueueRequest>,
+)
+
 class ArmyQueueTask(
     private val driver: ChromeDriver,
     private val wait: Wait<ChromeDriver> = driver.fluentWait(),
     private val authService: AuthService,
     private val timer: Timer
-) : RuntimeVariableTimerTask(authService, ArmyQueueTask::class.java) {
+) : RuntimeVariableTimerTask(authService, timer) {
 
     override fun isOnCoolDown() = false
 
     override fun doWork() {
-        ARMY_ORDER.forEach { armyQueueRequest ->
-            driver.get("$TRAVIAN_SERVER/dorf2.php")
+        ARMY_ORDER_GROUPS.forEach {
+            LOGGER.info("Processing ${it.villageId}")
+            processArmyOrderGroup(it)
+        }
+    }
+
+    override fun scheduleDelay(): Long = getRandomDelay()
+
+    override fun clone(): RuntimeVariableTimerTask {
+        return ArmyQueueTask(driver = driver, authService = authService, timer = timer)
+    }
+
+    private fun processArmyOrderGroup(armyOrderGroup: ArmyOrderGroup) {
+        armyOrderGroup.armyOrder.forEach { armyQueueRequest ->
+            driver.get("$TRAVIAN_SERVER/dorf2.php?newdid=${armyOrderGroup.villageId}")
             val armyBuildingSlot = driver.findElements(
                 ByXPath("//*[@data-name=\"${armyQueueRequest.buildingName}\"]")
             ).firstOrNull()
@@ -50,15 +68,6 @@ class ArmyQueueTask(
             armyBuildingLink?.click() ?: return
             queueArmy(armyQueueRequest)
         }
-    }
-
-    override fun reSchedule() {
-        val delay = getTroopCreationTimeInMillis("t1") ?: getRandomDelay()
-        timer.schedule(
-            ArmyQueueTask(driver = driver, authService = authService, timer = timer),
-            delay
-        )
-        LOGGER.info("${this::class.java.simpleName} scheduled at delay: $delay")
     }
 
     private fun queueArmy(armyQueueRequest: ArmyQueueRequest) {
@@ -77,12 +86,12 @@ class ArmyQueueTask(
         }
     }
 
-    private fun getTroopCreationTimeInMillis(troopId: String): Long? {
+    private fun getTroopCreationTimeInMillis(troopId: String): Long {
         return kotlin.runCatching {
             val troopCreationTime = driver.findElement(ByXPath("//*[@data-troopid=\"$troopId\"]"))
                 .findElement(ByCssSelector(".duration span")).text
             timeToMillis(troopCreationTime)
-        }.getOrNull()
+        }.getOrNull() ?: getRandomDelay()
     }
 
     /**
@@ -108,12 +117,20 @@ class ArmyQueueTask(
 
     companion object {
         private val LOGGER = LoggerFactory.getLogger(this::class.java)
-        private val ARMY_ORDER = setOf(
-            BarrackQueue(troopId = "t1", amount = 1), // phalanx
-//            StableQueue(troopId = "t4", amount = 1), // tt
+        private val FIRST_VILLAGE_ARMY_ORDER = setOf(
+            BarrackQueue(troopId = "t1", amount = 4), // phalanx
         )
 
-        private val RESCHEDULE_RANGE_MILLIS = (400_000L..800_000L)
-        private val RANDOM_ADDITIONAL_RANGE_MILLIS = (66_666L..111_111L)
+        private val CAPITAL_VILLAGE_ARMY_ORDER = setOf(
+            BarrackQueue(troopId = "t1", amount = 1), // phalanx
+        )
+
+        private val ARMY_ORDER_GROUPS = setOf(
+            ArmyOrderGroup(villageId = 18614, armyOrder = FIRST_VILLAGE_ARMY_ORDER),
+            ArmyOrderGroup(villageId = 22111, armyOrder = CAPITAL_VILLAGE_ARMY_ORDER),
+        )
+
+        private val RESCHEDULE_RANGE_MILLIS = (500_000L..600_000L)
+        private val RANDOM_ADDITIONAL_RANGE_MILLIS = (66_666L..88_888L)
     }
 }

@@ -10,36 +10,44 @@ import java.util.*
  */
 abstract class RuntimeVariableTimerTask(
     private val authService: AuthService,
-    private val clazz: Class<*>
+    private val timer: Timer,
 ) : TimerTask() {
 
     override fun run() {
-        LOGGER.info("${clazz.simpleName} started")
+        LOGGER.info("${this.javaClass.simpleName} started")
         kotlin.runCatching {
             if (!isOnCoolDown()) {
-                authenticate()
+                authService.authenticate()
                 doWork()
+                schedule(scheduleDelay())
             } else {
-                LOGGER.info("${clazz.simpleName} is on coolDown period")
+                LOGGER.info("${this.javaClass.simpleName} is on coolDown period")
             }
-        }.onFailure { LOGGER.info("${clazz.simpleName} failed", it) }
-        reSchedule()
-        LOGGER.info("${clazz.simpleName} completed")
+        }
+            .onFailure { LOGGER.info("${this.javaClass.simpleName} failed", it) }
+            .recover { schedule(recoverDelay()) }
+        LOGGER.info("${this.javaClass.simpleName} completed")
     }
 
     abstract fun isOnCoolDown(): Boolean
 
     abstract fun doWork()
 
-    abstract fun reSchedule()
+    abstract fun scheduleDelay(): Long
 
-    private fun authenticate() {
-        if (authService.isLoggedOut()) {
-            authService.reAuthenticate()
-        }
+    protected fun recoverDelay(): Long =
+        RECOVER_DELAY_RANGE.random() + RANDOM_ADDITIONAL_RECOVER_RANGE.random()
+
+    abstract fun clone(): RuntimeVariableTimerTask
+
+    private fun schedule(delay: Long) {
+        timer.schedule(clone(), delay)
+        LOGGER.info("${this.javaClass.simpleName} scheduled at delay: $delay")
     }
 
     companion object {
         private val LOGGER = LoggerFactory.getLogger(RuntimeVariableTimerTask::class.java)
+        private val RECOVER_DELAY_RANGE = (600_000L..1200_000L)
+        private val RANDOM_ADDITIONAL_RECOVER_RANGE = (1111L..5555L)
     }
 }
