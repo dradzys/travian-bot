@@ -13,11 +13,14 @@ class AuthService(
     private val credentials: Credentials = CredentialService.getCredentials(),
 ) {
 
+    private val loginButtonXpath = ByXPath("//button[@value=\"Login\"]")
+
     fun isUnAuthenticated(): Boolean {
         driver.get(TRAVIAN_SERVER)
         inputUsername()
         inputPassword()
-        return login()
+        login()
+        return hasAuthErrors()
     }
 
     fun authenticate() {
@@ -28,7 +31,7 @@ class AuthService(
 
     private fun inputUsername() {
         val userNameInput = driver.findElement(
-            ByXPath("//*[@id=\"loginForm\"]/tbody/tr[1]/td[2]/input")
+            ByXPath("//input[@name=\"name\"]")
         )
         wait.until { userNameInput.isDisplayed && userNameInput.isEnabled }
         userNameInput.clear()
@@ -37,30 +40,30 @@ class AuthService(
 
     private fun inputPassword() {
         val passwordInput = driver.findElement(
-            ByXPath("//*[@id=\"loginForm\"]/tbody/tr[2]/td[2]/input")
+            ByXPath("//input[@name=\"password\"]")
         )
         wait.until { passwordInput.isDisplayed && passwordInput.isEnabled }
         passwordInput.clear()
         passwordInput.sendKeys(credentials.password)
     }
 
-    private fun login(): Boolean {
-        val loginButton = driver.findElement(
-            ByXPath("//*[@id=\"loginForm\"]/tbody/tr[5]/td[2]/button")
-        )
+    private fun login() {
+        val loginButton = driver.findElement(loginButtonXpath)
         wait.until { loginButton.isDisplayed && loginButton.isEnabled }
         loginButton.click()
+    }
+
+    private fun hasAuthErrors(): Boolean {
         return driver.findElements(ByXPath("//*[@id=\"error.LTR\"]")).isNotEmpty()
     }
 
     private fun isLoggedOut(): Boolean {
-        return driver.currentUrl == TRAVIAN_SERVER || driver.findElements(
-            ByXPath("//*[@id=\"loginForm\"]/tbody/tr[5]/td[2]/button")
-        ).isNotEmpty()
+        return driver.currentUrl == TRAVIAN_SERVER || driver.findElements(loginButtonXpath)
+            .isNotEmpty()
     }
 
     private fun reAuthenticate() {
-        LOGGER.info("Attempting to reAuthenticate")
+        LOGGER.info("Attempting to re-authenticate")
         inputUsername()
         inputPassword()
         login()

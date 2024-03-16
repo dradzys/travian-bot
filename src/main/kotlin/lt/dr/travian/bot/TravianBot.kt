@@ -15,13 +15,14 @@ import java.util.*
 import kotlin.system.exitProcess
 
 
+private val LOGGER = LoggerFactory.getLogger("TravianBot")
 const val TRAVIAN_SERVER = "https://ts20.x2.europe.travian.com"
 
 fun main() {
     val driver = configureChromeDriver()
     val authService = AuthService(driver)
     if (authService.isUnAuthenticated()) {
-        LOGGER.error("Authentication Failure. Make sure you provide correct credentials and server is not under maintenance")
+        LOGGER.error("Authentication Failure. Make sure you provide correct credentials and travian server.")
         driver.quit()
         exitProcess(-1)
     }
@@ -34,18 +35,19 @@ fun main() {
     ).asSequence().shuffled().forEach {
         timer.schedule(it, 1000L)
     }
-
     Thread.currentThread().join()
 }
 
 private fun configureChromeDriver(): ChromeDriver {
     val options = ChromeOptions()
-//    options.addArguments("--headless=new")
-    options.addArguments("start-maximized")
-    options.addArguments("mute-audio")
-    options.addArguments("no-default-browser-check")
-    options.addArguments("disable-extensions")
-    options.addArguments("disable-infobars")
+    options.addArguments(
+        "start-maximized",
+        "mute-audio",
+        "no-default-browser-check",
+        "disable-extensions",
+        "disable-infobars",
+//        "--headless=new",
+    )
     options.setExperimentalOption("excludeSwitches", arrayOf("enable-automation"))
     options.setExperimentalOption(
         "prefs",
@@ -63,5 +65,3 @@ fun ChromeDriver.fluentWait(): Wait<ChromeDriver> {
         .pollingEvery(Duration.ofMillis((300L..500L).random()))
         .ignoring(ElementNotInteractableException::class.java)
 }
-
-private val LOGGER = LoggerFactory.getLogger("TravianBot")
