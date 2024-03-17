@@ -6,7 +6,6 @@ import lt.dr.travian.bot.TRAVIAN_SERVER
 import org.openqa.selenium.By.ByCssSelector
 import org.openqa.selenium.By.ByXPath
 import org.slf4j.LoggerFactory
-import java.time.LocalTime
 
 sealed interface ArmyQueueRequest {
     val troopId: String
@@ -37,7 +36,7 @@ class ArmyQueueTask : RescheduledTimerTask() {
 
     override fun doWork() {
         ARMY_ORDER_GROUPS.forEach {
-            LOGGER.info("Processing ${it.villageId}")
+            LOGGER.info("Processing villageId: ${it.villageId}")
             processArmyOrderGroup(it)
         }
     }
@@ -64,7 +63,7 @@ class ArmyQueueTask : RescheduledTimerTask() {
 
     private fun queueArmy(armyQueueRequest: ArmyQueueRequest) {
         val troopInputElement = DRIVER.findElement(
-            ByXPath("//*[@name=\"${armyQueueRequest.troopId}\"]")
+            ByXPath("//input[@name=\"${armyQueueRequest.troopId}\"]")
         )
         FLUENT_WAIT.until { troopInputElement.isDisplayed }
         if (troopInputElement.isEnabled) {
@@ -74,33 +73,8 @@ class ArmyQueueTask : RescheduledTimerTask() {
             trainButton.click()
             LOGGER.info("$armyQueueRequest queued")
         } else {
-            LOGGER.info("Not enough resource to queue $armyQueueRequest")
+            LOGGER.info("Not enough resources to queue $armyQueueRequest")
         }
-    }
-
-    private fun getTroopCreationTimeInMillis(troopId: String): Long {
-        return kotlin.runCatching {
-            val troopCreationTime = DRIVER.findElement(ByXPath("//*[@data-troopid=\"$troopId\"]"))
-                .findElement(ByCssSelector(".duration span")).text
-            timeToMillis(troopCreationTime)
-        }.getOrNull() ?: getRandomDelay()
-    }
-
-    /**
-     * HH:MM:ss conversion to Millis
-     */
-    private fun timeToMillis(time: String): Long {
-        val timeSplit = time.split(":")
-        val localTime = LocalTime.of(
-            timeSplit[0].toInt(),
-            timeSplit[1].toInt(),
-            timeSplit[2].toInt()
-        )
-        return getTotalSeconds(localTime) * 1000L
-    }
-
-    private fun getTotalSeconds(localTime: LocalTime): Int {
-        return (((localTime.hour * 60) + localTime.minute) * 60) + localTime.second
     }
 
     private fun getRandomDelay(): Long {
@@ -110,11 +84,11 @@ class ArmyQueueTask : RescheduledTimerTask() {
     companion object {
         private val LOGGER = LoggerFactory.getLogger(this::class.java)
         private val FIRST_VILLAGE_ARMY_ORDER = setOf(
-            BarrackQueue(troopId = "t1", amount = 6), // phalanx
+            BarrackQueue(troopId = "t1", amount = 6),
         )
 
         private val CAPITAL_VILLAGE_ARMY_ORDER = setOf(
-            BarrackQueue(troopId = "t1", amount = 1), // phalanx
+            BarrackQueue(troopId = "t1", amount = 1),
         )
 
         private val ARMY_ORDER_GROUPS = setOf(

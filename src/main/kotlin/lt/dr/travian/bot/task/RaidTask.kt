@@ -54,23 +54,9 @@ class RaidTask : RescheduledTimerTask() {
 
     override fun doWork() {
         RAID_UNIT_GROUPS.forEach { raidUnitGroup ->
-            LOGGER.info("Processing ${raidUnitGroup.villageId}")
-            run breaking@{
-                if (troopsMissing(raidUnitGroup.villageId)) return@breaking
-                raidUnitGroup.raidUnitSet.sortedWith(compareBy(nullsFirst()) { it.lastSent })
-                    .forEach { raidUnit ->
-                        kotlin.runCatching {
-                            val hasTroopsLeftOver = raid(raidUnit, raidUnitGroup.villageId)
-                            if (!hasTroopsLeftOver) {
-                                return@breaking
-                            }
-                        }.onFailure {
-                            LOGGER.error("$$raidUnit failed, continuing with next raid", it)
-                        }
-                    }
-            }
+            LOGGER.info("Processing villageId: ${raidUnitGroup.villageId}")
+            processRaidUnitGroup(raidUnitGroup)
         }
-
     }
 
     override fun scheduleDelay() =
@@ -78,6 +64,23 @@ class RaidTask : RescheduledTimerTask() {
 
     override fun clone(): RescheduledTimerTask {
         return RaidTask()
+    }
+
+    private fun processRaidUnitGroup(raidUnitGroup: RaidUnitGroup) {
+        if (troopsMissing(raidUnitGroup.villageId)) return
+
+        raidUnitGroup.raidUnitSet
+            .sortedWith(compareBy(nullsFirst()) { it.lastSent })
+            .forEach { raidUnit ->
+                kotlin.runCatching {
+                    val hasTroopsLeftOver = raid(raidUnit, raidUnitGroup.villageId)
+                    if (!hasTroopsLeftOver) {
+                        return
+                    }
+                }.onFailure {
+                    LOGGER.error("$raidUnit failed, continuing with next raid", it)
+                }
+            }
     }
 
     private fun troopsMissing(villageId: Int): Boolean {
@@ -122,7 +125,7 @@ class RaidTask : RescheduledTimerTask() {
                 ByCssSelector(".first td")
             ).firstOrNull()
             if (villageTribe == null) {
-                LOGGER.info("VillageTribe information not present skipping...")
+                LOGGER.info("Village Tribe information not present skipping...")
                 return true
             }
             if (villageTribe.text == "Natars") {
@@ -142,23 +145,26 @@ class RaidTask : RescheduledTimerTask() {
     private fun raidAndGetTroopsLeftOver(raidUnitLink: WebElement, raidUnit: RaidUnit): Boolean {
         raidUnitLink.click()
         val ttInputField = DRIVER.findElement(
-            ByXPath("//*[@id=\"troops\"]/tbody/tr[1]/td[2]/input")
+            ByXPath("//input[@name=\"troop[t4]\"]")
         )
         FLUENT_WAIT.until { ttInputField.isDisplayed }
         return if (ttInputField.isEnabled) {
             ttInputField.sendKeys(raidUnit.troopAmount.toString())
-            val raidRadioInput = DRIVER.findElements(ByXPath("//*[@value=\"4\"]")).firstOrNull()
+            val raidRadioInput = DRIVER.findElements(
+                ByXPath("//input[@value=\"4\"]")
+            ).firstOrNull()
             if (raidRadioInput == null) {
                 LOGGER.warn("Raid radio input not found! $raidUnit")
                 return true
             }
             raidRadioInput.click()
-            val okButton = DRIVER.findElement(ByXPath("//*[@id=\"ok\"]"))
+            val okButton = DRIVER.findElement(ByXPath("//button[@id=\"ok\"]"))
             FLUENT_WAIT.until { okButton.isDisplayed }
             okButton.click()
 
-            val confirmButton =
-                DRIVER.findElement(ByXPath("//*[@id=\"rallyPointButtonsContainer\"]/button[3]"))
+            val confirmButton = DRIVER.findElement(
+                ByXPath("//button[@class=\"rallyPointConfirm\"]")
+            )
             FLUENT_WAIT.until { confirmButton.isDisplayed }
             confirmButton.click()
             LOGGER.info("$raidUnit sent")
@@ -211,7 +217,6 @@ class RaidTask : RescheduledTimerTask() {
             RaidUnit(-21, -57, OASIS, troopAmount = 2),
             RaidUnit(-34, -58, VILLAGE, lastSent = LocalDateTime.now()),
             RaidUnit(-22, -68, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-34, -61, VILLAGE, lastSent = LocalDateTime.now()),
             RaidUnit(-19, -55, VILLAGE, lastSent = LocalDateTime.now()),
             RaidUnit(-26, -49, VILLAGE, lastSent = LocalDateTime.now()),
             RaidUnit(-26, -54, VILLAGE, lastSent = LocalDateTime.now()),
@@ -252,8 +257,8 @@ class RaidTask : RescheduledTimerTask() {
 
         private val CAPITAL_RAID_UNITS = setOf(
             RaidUnit(-29, -42, VILLAGE, troopAmount = 5),
+            RaidUnit(-39, -70, VILLAGE, troopAmount = 5),
             RaidUnit(-67, -59, VILLAGE, troopAmount = 2),
-            RaidUnit(-63, -39, VILLAGE, troopAmount = 4),
             RaidUnit(-38, -43, VILLAGE, troopAmount = 3),
             RaidUnit(-55, -39, VILLAGE, troopAmount = 2),
             RaidUnit(-68, -54, VILLAGE, troopAmount = 2),
@@ -273,25 +278,29 @@ class RaidTask : RescheduledTimerTask() {
             RaidUnit(-44, -73, VILLAGE, troopAmount = 2),
             RaidUnit(-62, -71, VILLAGE, troopAmount = 2),
             RaidUnit(-65, -69, VILLAGE, troopAmount = 2),
+            RaidUnit(-39, -72, VILLAGE, troopAmount = 2),
+            RaidUnit(-50, -74, VILLAGE, troopAmount = 2),
+            RaidUnit(-36, -74, VILLAGE, troopAmount = 1),
             RaidUnit(-45, -54, OASIS, troopAmount = 2),
             RaidUnit(-44, -54, OASIS, troopAmount = 2),
-            RaidUnit(-52, -67, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-66, -68, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-69, -63, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-68, -64, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-32, -38, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-57, -66, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-44, -35, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-59, -51, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-53, -36, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-40, -57, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-60, -57, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-67, -67, VILLAGE, lastSent = LocalDateTime.now()),
+
+            // low bounty raid unit, will enable once more troops available
+//            RaidUnit(-52, -67, VILLAGE, lastSent = LocalDateTime.now()),
+//            RaidUnit(-66, -68, VILLAGE, lastSent = LocalDateTime.now()),
+//            RaidUnit(-69, -63, VILLAGE, lastSent = LocalDateTime.now()),
+//            RaidUnit(-68, -64, VILLAGE, lastSent = LocalDateTime.now()),
+//            RaidUnit(-32, -38, VILLAGE, lastSent = LocalDateTime.now()),
+//            RaidUnit(-57, -66, VILLAGE, lastSent = LocalDateTime.now()),
+//            RaidUnit(-44, -35, VILLAGE, lastSent = LocalDateTime.now()),
+//            RaidUnit(-59, -51, VILLAGE, lastSent = LocalDateTime.now()),
+//            RaidUnit(-53, -36, VILLAGE, lastSent = LocalDateTime.now()),
+//            RaidUnit(-60, -57, VILLAGE, lastSent = LocalDateTime.now()),
+//            RaidUnit(-67, -67, VILLAGE, lastSent = LocalDateTime.now()),
         ).shuffled().toSet()
 
         private val RAID_UNIT_GROUPS = setOf(
             RaidUnitGroup(18614, FIRST_VILLAGE_RAID_UNITS),
-            RaidUnitGroup(22111, CAPITAL_RAID_UNITS)
+            RaidUnitGroup(22111, CAPITAL_RAID_UNITS),
         )
 
         private val RESCHEDULE_RANGE_MILLIS = (520_000L..720_000L)

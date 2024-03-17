@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory
 data class BuildingSlot(
     val id: Int?,
     val level: Int?,
-    val hasEnoughResources: Boolean,
+    val isUpgradable: Boolean,
     val isUnderConstruction: Boolean,
 )
 
@@ -22,10 +22,10 @@ sealed interface BuildQueueRequest {
     fun canLevelUp(buildingSlot: BuildingSlot): Boolean {
         if (buildingSlot.level != null && buildingSlot.level >= this.wantedLevel) {
             this.wantedLevelReached = true
-        } else if (buildingSlot.isUnderConstruction && (buildingSlot.level != null && buildingSlot.level >= this.wantedLevel - 1)) {
+        } else if (buildingSlot.isUnderConstruction && (buildingSlot.level != null && buildingSlot.level + 1 >= this.wantedLevel)) {
             this.wantedLevelReached = true
         }
-        return buildingSlot.hasEnoughResources
+        return buildingSlot.isUpgradable
                 && !buildingSlot.isUnderConstruction
                 && (buildingSlot.level != null && buildingSlot.level < this.wantedLevel)
     }
@@ -50,7 +50,7 @@ class BuildingQueueTask : RescheduledTimerTask() {
 
     override fun doWork() {
         BUILD_ORDER_GROUPS.forEach {
-            LOGGER.info("Processing village:${it.villageId}")
+            LOGGER.info("Processing villageId: ${it.villageId}")
             if (isQueueRunning(it.villageId)) {
                 return@forEach
             }
@@ -65,21 +65,22 @@ class BuildingQueueTask : RescheduledTimerTask() {
     }
 
     private fun processBuildOrderGroup(buildOrderGroup: BuildOrderGroup) {
-        buildOrderGroup.buildOrder.filter { !it.wantedLevelReached }.forEach {
-            upgrade(it, buildOrderGroup)
+        buildOrderGroup.buildOrder.filter { !it.wantedLevelReached }.forEach { buildQueueRequest ->
+            when (buildQueueRequest) {
+                is BuildingQueueRequest -> upgradeBuilding(buildQueueRequest, buildOrderGroup)
+                is ResourceFieldQueueRequest -> upgradeResourceField(
+                    buildQueueRequest,
+                    buildOrderGroup
+                )
+            }
         }
     }
 
     private fun isQueueRunning(villageId: Int): Boolean {
         DRIVER.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
-        return DRIVER.findElements(ByXPath("//*[@class=\"buildingList\"]")).isNotEmpty()
-    }
-
-    private fun upgrade(buildQueueRequest: BuildQueueRequest, buildOrderGroup: BuildOrderGroup) {
-        when (buildQueueRequest) {
-            is BuildingQueueRequest -> upgradeBuilding(buildQueueRequest, buildOrderGroup)
-            is ResourceFieldQueueRequest -> upgradeResourceField(buildQueueRequest, buildOrderGroup)
-        }
+        return DRIVER.findElements(
+            ByXPath("//div[@class=\"buildingList\"]")
+        ).isNotEmpty()
     }
 
     private fun upgradeBuilding(
@@ -87,20 +88,18 @@ class BuildingQueueTask : RescheduledTimerTask() {
         buildOrderGroup: BuildOrderGroup
     ) {
         DRIVER.get("$TRAVIAN_SERVER/dorf2.php?newdid=${buildOrderGroup.villageId}")
-        val dataNameSelector = ByXPath("//*[@data-name=\"${buildingQueueRequest.name}\"]")
-        DRIVER.findElements(dataNameSelector)
+        DRIVER.findElements(ByXPath("//div[@data-name=\"${buildingQueueRequest.name}\"]"))
             .map { it.findElement(ByCssSelector("a")) }
             .firstOrNull { buildingSlotLink ->
-                val buildingId = getBuildingId(buildingSlotLink)
-                val level = buildingSlotLink.getAttribute("data-level")?.toInt()
-                val hasEnoughResources = hasEnoughResources(buildingSlotLink)
-                val isUnderConstruction = isUnderConstruction(buildingSlotLink)
                 val buildingSlot = BuildingSlot(
-                    buildingId, level, hasEnoughResources, isUnderConstruction
+                    id = getBuildingId(buildingSlotLink),
+                    level = buildingSlotLink.getAttribute("data-level")?.toInt(),
+                    isUpgradable = isUpgradable(buildingSlotLink),
+                    isUnderConstruction = isUnderConstruction(buildingSlotLink),
                 )
                 buildingQueueRequest.canLevelUp(buildingSlot)
-            }?.let { link ->
-                link.click()
+            }?.let { buildingSlotLink ->
+                buildingSlotLink.click()
                 levelUpBuilding()
                 LOGGER.info("${buildingQueueRequest.name} queued")
             }
@@ -120,26 +119,22 @@ class BuildingQueueTask : RescheduledTimerTask() {
 
     private fun getResourceFieldById(id: Int, villageId: Int): BuildingSlot {
         return getResourceFields(villageId).firstOrNull { it.id != null && it.id == id }
-            ?: throw IllegalStateException("NotFound")
+            ?: throw IllegalStateException("ResourceField id: $id, in villageId: $villageId not found")
     }
 
     private fun getResourceFields(villageId: Int): List<BuildingSlot> {
         DRIVER.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
         val resourceFieldLinks = DRIVER.findElements(
-            ByXPath("//*[@id=\"resourceFieldContainer\"]/a")
+            ByXPath("//div[@id=\"resourceFieldContainer\"]/a")
         )
         return resourceFieldLinks
             .filter { it.getAttribute("href").contains("/build.php?id=") }
             .map {
-                val buildingId = getBuildingId(it)
-                val resourceFieldLevel = getResourceLevel(it)
-                val canLevelUpResourceField = hasEnoughResources(it)
-                val isUnderConstruction = isUnderConstruction(it)
                 BuildingSlot(
-                    buildingId,
-                    resourceFieldLevel,
-                    canLevelUpResourceField,
-                    isUnderConstruction
+                    id = getBuildingId(it),
+                    level = getResourceLevel(it),
+                    isUpgradable = isUpgradable(it),
+                    isUnderConstruction = isUnderConstruction(it),
                 )
             }
             .filter { it.id != null && it.level != null }
@@ -147,7 +142,7 @@ class BuildingQueueTask : RescheduledTimerTask() {
 
     private fun levelUpBuilding() {
         val upgradeButton = DRIVER.findElements(
-            ByXPath("//*[@class=\"section1\"]/button")
+            ByXPath("//div[@class=\"section1\"]/button")
         ).firstOrNull() ?: return
         FLUENT_WAIT.until { upgradeButton.isDisplayed }
         upgradeButton.click()
@@ -165,14 +160,17 @@ class BuildingQueueTask : RescheduledTimerTask() {
         }.getOrNull()
     }
 
-    private fun getResourceLevel(resourceFieldWebElement: WebElement): Int? {
-        return resourceFieldWebElement.findElements(ByCssSelector(".labelLayer"))
-            .firstOrNull()
-            ?.text
-            ?.toInt()
+    private fun getResourceLevel(resourceFieldLink: WebElement): Int? {
+        return resourceFieldLink.findElements(ByCssSelector(".labelLayer"))
+            .firstOrNull()?.text?.toInt()
     }
 
-    private fun hasEnoughResources(buildingWebElement: WebElement): Boolean {
+    /**
+     * Determine if buildingSlot is upgradable.
+     * Cases in which it may be not available for an upgrade:
+     * BuildQueue is full, lacking resources, slot level is maxed.
+     */
+    private fun isUpgradable(buildingWebElement: WebElement): Boolean {
         return getClassAttributes(buildingWebElement).let { classAttributes ->
             classAttributes.any { it == "good" }
         }
@@ -215,7 +213,9 @@ class BuildingQueueTask : RescheduledTimerTask() {
             ResourceFieldQueueRequest(17, 10),
             ResourceFieldQueueRequest(18, 10),
         )
-        private val CAPITAL_VILLAGE_BUILD_ORDER = emptySet<BuildQueueRequest>()
+        private val CAPITAL_VILLAGE_BUILD_ORDER = setOf(
+            BuildingQueueRequest("Rally Point", 3)
+        )
 
         private val BUILD_ORDER_GROUPS = setOf(
             BuildOrderGroup(18614, FIRST_VILLAGE_BUILD_ORDER),
