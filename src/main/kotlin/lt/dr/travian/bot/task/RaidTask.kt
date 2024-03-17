@@ -251,7 +251,9 @@ class RaidTask : RescheduledTimerTask() {
         ).shuffled().toSet()
 
         private val CAPITAL_RAID_UNITS = setOf(
+            RaidUnit(-29, -42, VILLAGE, troopAmount = 5),
             RaidUnit(-67, -59, VILLAGE, troopAmount = 2),
+            RaidUnit(-63, -39, VILLAGE, troopAmount = 4),
             RaidUnit(-38, -43, VILLAGE, troopAmount = 3),
             RaidUnit(-55, -39, VILLAGE, troopAmount = 2),
             RaidUnit(-68, -54, VILLAGE, troopAmount = 2),
@@ -263,13 +265,28 @@ class RaidTask : RescheduledTimerTask() {
             RaidUnit(-58, -48, VILLAGE, troopAmount = 2),
             RaidUnit(-46, -66, VILLAGE, troopAmount = 2),
             RaidUnit(-51, -64, VILLAGE, troopAmount = 2),
+            RaidUnit(-64, -44, VILLAGE, troopAmount = 2),
+            RaidUnit(-53, -69, VILLAGE, troopAmount = 2),
+            RaidUnit(-48, -70, VILLAGE, troopAmount = 2),
+            RaidUnit(-51, -69, VILLAGE, troopAmount = 2),
+            RaidUnit(-51, -72, VILLAGE, troopAmount = 2),
+            RaidUnit(-44, -73, VILLAGE, troopAmount = 2),
+            RaidUnit(-62, -71, VILLAGE, troopAmount = 2),
+            RaidUnit(-65, -69, VILLAGE, troopAmount = 2),
             RaidUnit(-45, -54, OASIS, troopAmount = 2),
             RaidUnit(-44, -54, OASIS, troopAmount = 2),
             RaidUnit(-52, -67, VILLAGE, lastSent = LocalDateTime.now()),
+            RaidUnit(-66, -68, VILLAGE, lastSent = LocalDateTime.now()),
+            RaidUnit(-69, -63, VILLAGE, lastSent = LocalDateTime.now()),
+            RaidUnit(-68, -64, VILLAGE, lastSent = LocalDateTime.now()),
+            RaidUnit(-32, -38, VILLAGE, lastSent = LocalDateTime.now()),
+            RaidUnit(-57, -66, VILLAGE, lastSent = LocalDateTime.now()),
+            RaidUnit(-44, -35, VILLAGE, lastSent = LocalDateTime.now()),
             RaidUnit(-59, -51, VILLAGE, lastSent = LocalDateTime.now()),
             RaidUnit(-53, -36, VILLAGE, lastSent = LocalDateTime.now()),
             RaidUnit(-40, -57, VILLAGE, lastSent = LocalDateTime.now()),
             RaidUnit(-60, -57, VILLAGE, lastSent = LocalDateTime.now()),
+            RaidUnit(-67, -67, VILLAGE, lastSent = LocalDateTime.now()),
         ).shuffled().toSet()
 
         private val RAID_UNIT_GROUPS = setOf(

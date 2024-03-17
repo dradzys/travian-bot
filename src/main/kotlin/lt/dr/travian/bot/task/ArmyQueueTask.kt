@@ -110,7 +110,7 @@ class ArmyQueueTask : RescheduledTimerTask() {
     companion object {
         private val LOGGER = LoggerFactory.getLogger(this::class.java)
         private val FIRST_VILLAGE_ARMY_ORDER = setOf(
-            BarrackQueue(troopId = "t1", amount = 4), // phalanx
+            BarrackQueue(troopId = "t1", amount = 6), // phalanx
         )
 
         private val CAPITAL_VILLAGE_ARMY_ORDER = setOf(

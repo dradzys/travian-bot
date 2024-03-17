@@ -45,7 +45,7 @@ private fun buildChromeDrive(): ChromeDriver {
         "no-default-browser-check",
         "disable-extensions",
         "disable-infobars",
-        // "--headless=new",
+        "--headless=old",
     )
     options.setExperimentalOption("excludeSwitches", arrayOf("enable-automation"))
     options.setExperimentalOption(
