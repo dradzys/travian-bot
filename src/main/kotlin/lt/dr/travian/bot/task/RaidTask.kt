@@ -163,7 +163,7 @@ class RaidTask : RescheduledTimerTask() {
             okButton.click()
 
             val confirmButton = DRIVER.findElement(
-                ByXPath("//button[@class=\"rallyPointConfirm\"]")
+                ByXPath("//button[@value=\"Confirm\"]")
             )
             FLUENT_WAIT.until { confirmButton.isDisplayed }
             confirmButton.click()
