@@ -193,33 +193,48 @@ class BuildingQueueTask : RescheduledTimerTask() {
     companion object {
         private val LOGGER = LoggerFactory.getLogger(this::class.java)
         private val FIRST_VILLAGE_BUILD_ORDER = setOf(
-            BuildingQueueRequest("Warehouse", 16),
-            ResourceFieldQueueRequest(1, 10),
-            ResourceFieldQueueRequest(2, 10),
-            ResourceFieldQueueRequest(3, 10),
-            ResourceFieldQueueRequest(4, 10, wantedLevelReached = true),
-            ResourceFieldQueueRequest(5, 10, wantedLevelReached = true),
-            ResourceFieldQueueRequest(6, 10),
-            ResourceFieldQueueRequest(7, 10),
-            ResourceFieldQueueRequest(8, 10),
-            ResourceFieldQueueRequest(9, 10),
             ResourceFieldQueueRequest(10, 10),
             ResourceFieldQueueRequest(11, 10),
+            ResourceFieldQueueRequest(14, 10),
+            ResourceFieldQueueRequest(17, 10),
             ResourceFieldQueueRequest(12, 10),
             ResourceFieldQueueRequest(13, 10),
-            ResourceFieldQueueRequest(14, 10),
             ResourceFieldQueueRequest(15, 10),
-            ResourceFieldQueueRequest(16, 10),
-            ResourceFieldQueueRequest(17, 10),
-            ResourceFieldQueueRequest(18, 10),
+            BuildingQueueRequest("Granary", 19),
+            BuildingQueueRequest("Rally Point", 15),
         )
         private val CAPITAL_VILLAGE_BUILD_ORDER = setOf(
-            BuildingQueueRequest("Rally Point", 3)
+            BuildingQueueRequest("Granary", 16),
+            BuildingQueueRequest("Hero's Mansion", 10),
+            BuildingQueueRequest("Warehouse", 14),
+        )
+        private val THIRD_VILLAGE_BUILD_ORDER = setOf(
+            BuildingQueueRequest("Granary", 7),
+            BuildingQueueRequest("Warehouse", 7),
+            ResourceFieldQueueRequest(1, 7),
+            ResourceFieldQueueRequest(2, 7),
+            ResourceFieldQueueRequest(3, 7),
+            ResourceFieldQueueRequest(4, 7),
+            ResourceFieldQueueRequest(5, 7),
+            ResourceFieldQueueRequest(6, 7),
+            ResourceFieldQueueRequest(7, 7),
+            ResourceFieldQueueRequest(8, 7),
+            ResourceFieldQueueRequest(9, 7),
+            ResourceFieldQueueRequest(10, 7),
+            ResourceFieldQueueRequest(11, 7),
+            ResourceFieldQueueRequest(12, 7),
+            ResourceFieldQueueRequest(13, 7),
+            ResourceFieldQueueRequest(14, 7),
+            ResourceFieldQueueRequest(15, 7),
+            ResourceFieldQueueRequest(16, 7),
+            ResourceFieldQueueRequest(17, 7),
+            ResourceFieldQueueRequest(18, 7),
         )
 
         private val BUILD_ORDER_GROUPS = setOf(
             BuildOrderGroup(18614, FIRST_VILLAGE_BUILD_ORDER),
             BuildOrderGroup(22111, CAPITAL_VILLAGE_BUILD_ORDER),
+            BuildOrderGroup(24767, THIRD_VILLAGE_BUILD_ORDER),
         )
 
         // 7 to 15 minutes

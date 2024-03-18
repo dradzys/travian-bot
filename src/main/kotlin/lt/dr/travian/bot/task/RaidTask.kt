@@ -119,7 +119,7 @@ class RaidTask : RescheduledTimerTask() {
 
     private fun raidVillage(raidUnit: RaidUnit, villageId: Int): Boolean {
         DRIVER.get("$TRAVIAN_SERVER/karte.php?x=${raidUnit.x}&y=${raidUnit.y}&newdid=$villageId")
-        val villageInfoElement = DRIVER.findElement(ById("village_info"))
+        val villageInfoElement = DRIVER.findElements(ById("village_info")).firstOrNull()
         villageInfoElement?.let {
             val villageTribe = villageInfoElement.findElements(
                 ByCssSelector(".first td")
@@ -198,7 +198,6 @@ class RaidTask : RescheduledTimerTask() {
             RaidUnit(-26, -58, VILLAGE, troopAmount = 10),
             RaidUnit(-29, -42, VILLAGE, troopAmount = 6),
             RaidUnit(-24, -37, VILLAGE, troopAmount = 4),
-            RaidUnit(-37, -49, VILLAGE, troopAmount = 4),
             RaidUnit(-26, -56, VILLAGE, troopAmount = 4),
             RaidUnit(-19, -62, VILLAGE, troopAmount = 2),
             RaidUnit(-12, -58, VILLAGE, troopAmount = 2),
@@ -264,14 +263,12 @@ class RaidTask : RescheduledTimerTask() {
             RaidUnit(-68, -54, VILLAGE, troopAmount = 2),
             RaidUnit(-37, -49, VILLAGE, troopAmount = 2),
             RaidUnit(-43, -61, VILLAGE, troopAmount = 2),
-            RaidUnit(-45, -61, VILLAGE, troopAmount = 3),
             RaidUnit(-45, -65, VILLAGE, troopAmount = 2),
             RaidUnit(-39, -46, VILLAGE, troopAmount = 2),
             RaidUnit(-58, -48, VILLAGE, troopAmount = 2),
             RaidUnit(-46, -66, VILLAGE, troopAmount = 2),
             RaidUnit(-51, -64, VILLAGE, troopAmount = 2),
             RaidUnit(-64, -44, VILLAGE, troopAmount = 2),
-            RaidUnit(-53, -69, VILLAGE, troopAmount = 2),
             RaidUnit(-48, -70, VILLAGE, troopAmount = 2),
             RaidUnit(-51, -69, VILLAGE, troopAmount = 2),
             RaidUnit(-51, -72, VILLAGE, troopAmount = 2),
@@ -283,24 +280,12 @@ class RaidTask : RescheduledTimerTask() {
             RaidUnit(-36, -74, VILLAGE, troopAmount = 1),
             RaidUnit(-45, -54, OASIS, troopAmount = 2),
             RaidUnit(-44, -54, OASIS, troopAmount = 2),
-
-            // low bounty raid unit, will enable once more troops available
-//            RaidUnit(-52, -67, VILLAGE, lastSent = LocalDateTime.now()),
-//            RaidUnit(-66, -68, VILLAGE, lastSent = LocalDateTime.now()),
-//            RaidUnit(-69, -63, VILLAGE, lastSent = LocalDateTime.now()),
-//            RaidUnit(-68, -64, VILLAGE, lastSent = LocalDateTime.now()),
-//            RaidUnit(-32, -38, VILLAGE, lastSent = LocalDateTime.now()),
-//            RaidUnit(-57, -66, VILLAGE, lastSent = LocalDateTime.now()),
-//            RaidUnit(-44, -35, VILLAGE, lastSent = LocalDateTime.now()),
-//            RaidUnit(-59, -51, VILLAGE, lastSent = LocalDateTime.now()),
-//            RaidUnit(-53, -36, VILLAGE, lastSent = LocalDateTime.now()),
-//            RaidUnit(-60, -57, VILLAGE, lastSent = LocalDateTime.now()),
-//            RaidUnit(-67, -67, VILLAGE, lastSent = LocalDateTime.now()),
         ).shuffled().toSet()
 
         private val RAID_UNIT_GROUPS = setOf(
             RaidUnitGroup(18614, FIRST_VILLAGE_RAID_UNITS),
             RaidUnitGroup(22111, CAPITAL_RAID_UNITS),
+            RaidUnitGroup(24767, emptySet()),
         )
 
         private val RESCHEDULE_RANGE_MILLIS = (520_000L..720_000L)
