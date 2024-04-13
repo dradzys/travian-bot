@@ -28,7 +28,8 @@ class AuthService private constructor() {
         inputUsername()
         inputPassword()
         login()
-        return hasAuthErrors()
+        val hasAuthErrors = hasAuthErrors()
+        return hasAuthErrors
     }
 
     fun authenticate() {
@@ -62,12 +63,12 @@ class AuthService private constructor() {
     }
 
     private fun hasAuthErrors(): Boolean {
-        return DRIVER.findElements(ByXPath("//*[@id=\"error.LTR\"]")).isNotEmpty()
+        return DRIVER.findElements(ByXPath("//*[@id=\"error\"]")).isNotEmpty()
     }
 
     private fun isLoggedOut(): Boolean {
-        return DRIVER.currentUrl == TRAVIAN_SERVER || DRIVER.findElements(loginButtonXpath)
-            .isNotEmpty()
+        return DRIVER.currentUrl == TRAVIAN_SERVER
+                || DRIVER.findElements(loginButtonXpath).isNotEmpty()
     }
 
     private fun reAuthenticate() {

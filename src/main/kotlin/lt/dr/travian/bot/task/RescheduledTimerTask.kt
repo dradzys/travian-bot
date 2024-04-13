@@ -18,7 +18,7 @@ abstract class RescheduledTimerTask(
         kotlin.runCatching {
             if (!isOnCoolDown()) {
                 authService.authenticate()
-                doWork()
+                execute()
                 schedule(scheduleDelay())
             } else {
                 LOGGER.info("${this.javaClass.simpleName} is on coolDown period")
@@ -31,7 +31,7 @@ abstract class RescheduledTimerTask(
 
     abstract fun isOnCoolDown(): Boolean
 
-    abstract fun doWork()
+    abstract fun execute()
 
     abstract fun scheduleDelay(): Long
 

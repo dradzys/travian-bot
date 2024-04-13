@@ -19,6 +19,7 @@ data class RaidUnit(
     val x: Int,
     val y: Int,
     val raidUnitType: RaidUnitType,
+    val troopId: String,
     val troopAmount: Int = 1,
     var lastSent: LocalDateTime? = null
 ) {
@@ -50,9 +51,30 @@ data class RaidUnitGroup(val villageId: Int, val raidUnitSet: Set<RaidUnit>)
 
 class RaidTask : RescheduledTimerTask() {
 
+    companion object {
+        private val LOGGER = LoggerFactory.getLogger(this::class.java)
+        private val FIRST_VILLAGE_RAID_UNITS = setOf(
+            RaidUnit(-26, -58, VILLAGE, troopAmount = 10, troopId = "t4"),
+            RaidUnit(-21, -57, OASIS, troopAmount = 2, troopId = "t4"),
+        ).shuffled().toSet()
+
+        private val CAPITAL_RAID_UNITS = setOf(
+            RaidUnit(-29, -42, VILLAGE, troopAmount = 8, troopId = "t4"),
+            RaidUnit(-44, -50, OASIS, troopAmount = 2, troopId = "t4"),
+        ).shuffled().toSet()
+
+        private val RAID_UNIT_GROUPS = setOf(
+            RaidUnitGroup(18614, FIRST_VILLAGE_RAID_UNITS),
+            RaidUnitGroup(22111, CAPITAL_RAID_UNITS),
+        )
+
+        private val RESCHEDULE_RANGE_MILLIS = (520_000L..720_000L)
+        private val RANDOM_ADDITIONAL_RANGE_MILLIS = (1111L..3333L)
+    }
+
     override fun isOnCoolDown() = false
 
-    override fun doWork() {
+    override fun execute() {
         RAID_UNIT_GROUPS.forEach { raidUnitGroup ->
             LOGGER.info("Processing villageId: ${raidUnitGroup.villageId}")
             processRaidUnitGroup(raidUnitGroup)
@@ -145,13 +167,14 @@ class RaidTask : RescheduledTimerTask() {
     private fun raidAndGetTroopsLeftOver(raidUnitLink: WebElement, raidUnit: RaidUnit): Boolean {
         raidUnitLink.click()
         val ttInputField = DRIVER.findElement(
-            ByXPath("//input[@name=\"troop[t4]\"]")
+            ByXPath("//input[@name=\"troop[${raidUnit.troopId}]\"]")
         )
         FLUENT_WAIT.until { ttInputField.isDisplayed }
         return if (ttInputField.isEnabled) {
             ttInputField.sendKeys(raidUnit.troopAmount.toString())
+            val troopIdNumber = raidUnit.troopId.substring(0, 1)
             val raidRadioInput = DRIVER.findElements(
-                ByXPath("//input[@value=\"4\"]")
+                ByXPath("//input[@value=\"$troopIdNumber\"]")
             ).firstOrNull()
             if (raidRadioInput == null) {
                 LOGGER.warn("Raid radio input not found! $raidUnit")
@@ -190,105 +213,5 @@ class RaidTask : RescheduledTimerTask() {
 
     private fun findOasisRaidLink(): WebElement? {
         return DRIVER.findElements(ByLinkText("Raid unoccupied oasis")).firstOrNull()
-    }
-
-    companion object {
-        private val LOGGER = LoggerFactory.getLogger(this::class.java)
-        private val FIRST_VILLAGE_RAID_UNITS = setOf(
-            RaidUnit(-26, -58, VILLAGE, troopAmount = 10),
-            RaidUnit(-29, -42, VILLAGE, troopAmount = 6),
-            RaidUnit(-24, -37, VILLAGE, troopAmount = 4),
-            RaidUnit(-26, -56, VILLAGE, troopAmount = 4),
-            RaidUnit(-19, -62, VILLAGE, troopAmount = 2),
-            RaidUnit(-12, -58, VILLAGE, troopAmount = 2),
-            RaidUnit(-21, -61, VILLAGE, troopAmount = 2),
-            RaidUnit(-22, -26, VILLAGE, troopAmount = 3),
-            RaidUnit(-19, -26, VILLAGE, troopAmount = 3),
-            RaidUnit(-19, -49, OASIS, troopAmount = 2),
-            RaidUnit(-16, -50, OASIS, troopAmount = 2),
-            RaidUnit(-22, -49, OASIS, troopAmount = 2),
-            RaidUnit(-15, -51, OASIS, troopAmount = 2),
-            RaidUnit(-15, -52, OASIS, troopAmount = 2),
-            RaidUnit(-20, -46, OASIS, troopAmount = 2),
-            RaidUnit(-23, -46, OASIS, troopAmount = 2),
-            RaidUnit(-18, -48, OASIS, troopAmount = 2),
-            RaidUnit(-18, -55, OASIS, troopAmount = 2),
-            RaidUnit(-21, -57, OASIS, troopAmount = 2),
-            RaidUnit(-34, -58, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-22, -68, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-19, -55, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-26, -49, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-26, -54, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-17, -45, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-21, -45, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-20, -43, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-25, -44, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-25, -46, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-13, -50, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-27, -44, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-30, -41, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-33, -42, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-14, -42, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-14, -69, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-6, -49, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-12, -53, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-26, -62, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-27, -61, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-29, -62, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-23, -65, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-23, -76, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-17, -65, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-11, -59, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-10, -55, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-12, -53, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-6, -49, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-34, -54, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-30, -69, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-24, -74, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(3, -49, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-14, -39, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-16, -59, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-17, -50, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-17, -40, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-6, -64, VILLAGE, lastSent = LocalDateTime.now()),
-            RaidUnit(-7, -65, VILLAGE, lastSent = LocalDateTime.now()),
-        ).shuffled().toSet()
-
-        private val CAPITAL_RAID_UNITS = setOf(
-            RaidUnit(-29, -42, VILLAGE, troopAmount = 5),
-            RaidUnit(-39, -70, VILLAGE, troopAmount = 5),
-            RaidUnit(-67, -59, VILLAGE, troopAmount = 2),
-            RaidUnit(-38, -43, VILLAGE, troopAmount = 3),
-            RaidUnit(-55, -39, VILLAGE, troopAmount = 2),
-            RaidUnit(-68, -54, VILLAGE, troopAmount = 2),
-            RaidUnit(-37, -49, VILLAGE, troopAmount = 2),
-            RaidUnit(-43, -61, VILLAGE, troopAmount = 2),
-            RaidUnit(-45, -65, VILLAGE, troopAmount = 2),
-            RaidUnit(-39, -46, VILLAGE, troopAmount = 2),
-            RaidUnit(-58, -48, VILLAGE, troopAmount = 2),
-            RaidUnit(-46, -66, VILLAGE, troopAmount = 2),
-            RaidUnit(-51, -64, VILLAGE, troopAmount = 2),
-            RaidUnit(-64, -44, VILLAGE, troopAmount = 2),
-            RaidUnit(-48, -70, VILLAGE, troopAmount = 2),
-            RaidUnit(-51, -69, VILLAGE, troopAmount = 2),
-            RaidUnit(-51, -72, VILLAGE, troopAmount = 2),
-            RaidUnit(-44, -73, VILLAGE, troopAmount = 2),
-            RaidUnit(-62, -71, VILLAGE, troopAmount = 2),
-            RaidUnit(-65, -69, VILLAGE, troopAmount = 2),
-            RaidUnit(-39, -72, VILLAGE, troopAmount = 2),
-            RaidUnit(-50, -74, VILLAGE, troopAmount = 2),
-            RaidUnit(-36, -74, VILLAGE, troopAmount = 1),
-            RaidUnit(-45, -54, OASIS, troopAmount = 2),
-            RaidUnit(-44, -54, OASIS, troopAmount = 2),
-        ).shuffled().toSet()
-
-        private val RAID_UNIT_GROUPS = setOf(
-            RaidUnitGroup(18614, FIRST_VILLAGE_RAID_UNITS),
-            RaidUnitGroup(22111, CAPITAL_RAID_UNITS),
-            RaidUnitGroup(24767, emptySet()),
-        )
-
-        private val RESCHEDULE_RANGE_MILLIS = (520_000L..720_000L)
-        private val RANDOM_ADDITIONAL_RANGE_MILLIS = (1111L..3333L)
     }
 }

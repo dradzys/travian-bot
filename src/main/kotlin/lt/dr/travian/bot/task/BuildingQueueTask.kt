@@ -46,9 +46,33 @@ data class BuildingQueueRequest(
 data class BuildOrderGroup(val villageId: Int, val buildOrder: Set<BuildQueueRequest>)
 
 class BuildingQueueTask : RescheduledTimerTask() {
+
+    companion object {
+        private val FIRST_VILLAGE_BUILD_ORDER = setOf(
+            BuildingQueueRequest("Warehouse", 20),
+            BuildingQueueRequest("Main Building", 20),
+        )
+        private val CAPITAL_VILLAGE_BUILD_ORDER = setOf(
+            ResourceFieldQueueRequest(1, 9),
+            ResourceFieldQueueRequest(2, 9),
+            ResourceFieldQueueRequest(3, 9),
+            BuildingQueueRequest("Barracks", 12),
+            BuildingQueueRequest("Warehouse", 18),
+        )
+
+        private val BUILD_ORDER_GROUPS = setOf(
+            BuildOrderGroup(18614, FIRST_VILLAGE_BUILD_ORDER),
+            BuildOrderGroup(22111, CAPITAL_VILLAGE_BUILD_ORDER),
+        )
+
+        private val LOGGER = LoggerFactory.getLogger(this::class.java)
+        private val RESCHEDULE_RANGE_MILLIS = (350_000L..600_000L)
+        private val RANDOM_ADDITIONAL_RANGE_MILLIS = (1111L..5555L)
+    }
+
     override fun isOnCoolDown() = false
 
-    override fun doWork() {
+    override fun execute() {
         BUILD_ORDER_GROUPS.forEach {
             LOGGER.info("Processing villageId: ${it.villageId}")
             if (isQueueRunning(it.villageId)) {
@@ -89,28 +113,34 @@ class BuildingQueueTask : RescheduledTimerTask() {
     ) {
         DRIVER.get("$TRAVIAN_SERVER/dorf2.php?newdid=${buildOrderGroup.villageId}")
         DRIVER.findElements(ByXPath("//div[@data-name=\"${buildingQueueRequest.name}\"]"))
-            .map { it.findElement(ByCssSelector("a")) }
-            .firstOrNull { buildingSlotLink ->
-                val buildingSlot = BuildingSlot(
+            .map {
+                val buildingSlotLink = it.findElement(ByCssSelector("a"))
+                buildingSlotLink to BuildingSlot(
                     id = getBuildingId(buildingSlotLink),
                     level = buildingSlotLink.getAttribute("data-level")?.toInt(),
                     isUpgradable = isUpgradable(buildingSlotLink),
                     isUnderConstruction = isUnderConstruction(buildingSlotLink),
                 )
+            }
+            .firstOrNull { (_, buildingSlot) ->
                 buildingQueueRequest.canLevelUp(buildingSlot)
-            }?.let { buildingSlotLink ->
-                buildingSlotLink.click()
+            }
+            ?.let { (link, _) ->
+                link.click()
                 levelUpBuilding()
                 LOGGER.info("${buildingQueueRequest.name} queued")
             }
+
     }
 
     private fun upgradeResourceField(
         resourceFieldQueueRequest: ResourceFieldQueueRequest,
         buildOrderGroup: BuildOrderGroup
     ) {
-        val resourceField =
-            getResourceFieldById(resourceFieldQueueRequest.id, buildOrderGroup.villageId)
+        val resourceField = getResourceFieldById(
+            resourceFieldQueueRequest.id,
+            buildOrderGroup.villageId,
+        )
         if (!resourceFieldQueueRequest.canLevelUp(resourceField)) return
         DRIVER.get("$TRAVIAN_SERVER/build.php?newdid=${buildOrderGroup.villageId}&id=${resourceField.id}")
         levelUpBuilding()
@@ -162,7 +192,13 @@ class BuildingQueueTask : RescheduledTimerTask() {
 
     private fun getResourceLevel(resourceFieldLink: WebElement): Int? {
         return resourceFieldLink.findElements(ByCssSelector(".labelLayer"))
-            .firstOrNull()?.text?.toInt()
+            .firstOrNull()?.let {
+                if (it.text.isBlank()) {
+                    // resource field with level 0, label level is just empty...
+                    return 0
+                }
+                it.text.toInt()
+            }
     }
 
     /**
@@ -188,57 +224,5 @@ class BuildingQueueTask : RescheduledTimerTask() {
 
     private fun getRandomDelay(): Long {
         return RESCHEDULE_RANGE_MILLIS.random() + RANDOM_ADDITIONAL_RANGE_MILLIS.random()
-    }
-
-    companion object {
-        private val LOGGER = LoggerFactory.getLogger(this::class.java)
-        private val FIRST_VILLAGE_BUILD_ORDER = setOf(
-            ResourceFieldQueueRequest(10, 10),
-            ResourceFieldQueueRequest(11, 10),
-            ResourceFieldQueueRequest(14, 10),
-            ResourceFieldQueueRequest(17, 10),
-            ResourceFieldQueueRequest(12, 10),
-            ResourceFieldQueueRequest(13, 10),
-            ResourceFieldQueueRequest(15, 10),
-            BuildingQueueRequest("Granary", 19),
-            BuildingQueueRequest("Rally Point", 15),
-        )
-        private val CAPITAL_VILLAGE_BUILD_ORDER = setOf(
-            BuildingQueueRequest("Granary", 16),
-            BuildingQueueRequest("Hero's Mansion", 10),
-            BuildingQueueRequest("Warehouse", 14),
-        )
-        private val THIRD_VILLAGE_BUILD_ORDER = setOf(
-            BuildingQueueRequest("Granary", 7),
-            BuildingQueueRequest("Warehouse", 7),
-            ResourceFieldQueueRequest(1, 7),
-            ResourceFieldQueueRequest(2, 7),
-            ResourceFieldQueueRequest(3, 7),
-            ResourceFieldQueueRequest(4, 7),
-            ResourceFieldQueueRequest(5, 7),
-            ResourceFieldQueueRequest(6, 7),
-            ResourceFieldQueueRequest(7, 7),
-            ResourceFieldQueueRequest(8, 7),
-            ResourceFieldQueueRequest(9, 7),
-            ResourceFieldQueueRequest(10, 7),
-            ResourceFieldQueueRequest(11, 7),
-            ResourceFieldQueueRequest(12, 7),
-            ResourceFieldQueueRequest(13, 7),
-            ResourceFieldQueueRequest(14, 7),
-            ResourceFieldQueueRequest(15, 7),
-            ResourceFieldQueueRequest(16, 7),
-            ResourceFieldQueueRequest(17, 7),
-            ResourceFieldQueueRequest(18, 7),
-        )
-
-        private val BUILD_ORDER_GROUPS = setOf(
-            BuildOrderGroup(18614, FIRST_VILLAGE_BUILD_ORDER),
-            BuildOrderGroup(22111, CAPITAL_VILLAGE_BUILD_ORDER),
-            BuildOrderGroup(24767, THIRD_VILLAGE_BUILD_ORDER),
-        )
-
-        // 7 to 15 minutes
-        private val RESCHEDULE_RANGE_MILLIS = (450_000L..900_000L)
-        private val RANDOM_ADDITIONAL_RANGE_MILLIS = (1111L..5555L)
     }
 }

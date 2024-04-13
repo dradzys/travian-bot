@@ -14,11 +14,11 @@ import java.time.Duration
 import java.util.*
 import kotlin.system.exitProcess
 
-private val LOGGER = LoggerFactory.getLogger("TravianBot")
 const val TRAVIAN_SERVER = "https://ts20.x2.europe.travian.com"
 val TIMER = Timer()
 val DRIVER = buildChromeDrive()
 val FLUENT_WAIT = DRIVER.fluentWait()
+private val LOGGER = LoggerFactory.getLogger("TravianBot")
 
 fun main() {
     if (AuthService.getInstance().isUnAuthenticated()) {
@@ -45,7 +45,6 @@ private fun buildChromeDrive(): ChromeDriver {
         "no-default-browser-check",
         "disable-extensions",
         "disable-infobars",
-        "--headless=old",
     )
     options.setExperimentalOption("excludeSwitches", arrayOf("enable-automation"))
     options.setExperimentalOption(
