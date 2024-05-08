@@ -28,8 +28,7 @@ class AuthService private constructor() {
         inputUsername()
         inputPassword()
         login()
-        val hasAuthErrors = hasAuthErrors()
-        return hasAuthErrors
+        return hasAuthErrors()
     }
 
     fun authenticate() {
@@ -63,7 +62,10 @@ class AuthService private constructor() {
     }
 
     private fun hasAuthErrors(): Boolean {
-        return DRIVER.findElements(ByXPath("//*[@id=\"error\"]")).isNotEmpty()
+        val errorDiv = DRIVER.findElements(ByXPath("//*[@class=\"errorSection\"]")).firstOrNull()
+        return errorDiv?.let {
+            !it.getAttribute("class").contains("hide")
+        } ?: false
     }
 
     private fun isLoggedOut(): Boolean {
