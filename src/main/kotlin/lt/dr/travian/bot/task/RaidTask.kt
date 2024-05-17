@@ -49,6 +49,9 @@ data class RaidUnit(
 
 data class RaidUnitGroup(val villageId: Int, val raidUnitSet: Set<RaidUnit>)
 
+/**
+ * Manual raid task. Goes through the raid unit groups and raids the villages/oasis one-by-one.
+ */
 class RaidTask : RescheduledTimerTask() {
 
     companion object {

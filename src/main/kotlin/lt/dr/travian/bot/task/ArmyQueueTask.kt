@@ -33,23 +33,17 @@ data class ArmyOrderGroup(
 class ArmyQueueTask : RescheduledTimerTask() {
 
     companion object {
-        private val FIRST_VILLAGE_ARMY_ORDER = setOf(
-            BarrackQueue(troopId = "t1", amount = 15),
-            StableQueue(troopId = "t6", amount = 2)
-        )
-
         private val CAPITAL_VILLAGE_ARMY_ORDER = setOf(
-            BarrackQueue(troopId = "t1", amount = 2),
+            BarrackQueue(troopId = "t2", amount = 1),
         )
 
         private val ARMY_ORDER_GROUPS = setOf(
-            ArmyOrderGroup(villageId = 18614, armyOrder = FIRST_VILLAGE_ARMY_ORDER),
-            ArmyOrderGroup(villageId = 22111, armyOrder = CAPITAL_VILLAGE_ARMY_ORDER),
+            ArmyOrderGroup(villageId = 20217, armyOrder = CAPITAL_VILLAGE_ARMY_ORDER),
         )
 
         private val LOGGER = LoggerFactory.getLogger(this::class.java)
-        private val RESCHEDULE_RANGE_MILLIS = (500_000L..600_000L)
-        private val RANDOM_ADDITIONAL_RANGE_MILLIS = (66_666L..88_888L)
+        private val RESCHEDULE_RANGE_MILLIS = (300_000L..360_000L)
+        private val RANDOM_ADDITIONAL_RANGE_MILLIS = (6_666L..8_888L)
     }
 
     override fun isOnCoolDown() = false

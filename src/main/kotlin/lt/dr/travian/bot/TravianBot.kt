@@ -3,7 +3,7 @@ package lt.dr.travian.bot
 import lt.dr.travian.bot.auth.AuthService
 import lt.dr.travian.bot.task.ArmyQueueTask
 import lt.dr.travian.bot.task.BuildingQueueTask
-import lt.dr.travian.bot.task.RaidTask
+import lt.dr.travian.bot.task.FarmListSendTask
 import org.openqa.selenium.ElementNotInteractableException
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
@@ -14,7 +14,7 @@ import java.time.Duration
 import java.util.*
 import kotlin.system.exitProcess
 
-const val TRAVIAN_SERVER = "https://ts20.x2.europe.travian.com"
+const val TRAVIAN_SERVER = "https://ts30.x3.international.travian.com"
 val TIMER = Timer()
 val DRIVER = buildChromeDrive()
 val FLUENT_WAIT = DRIVER.fluentWait()
@@ -28,7 +28,7 @@ fun main() {
     }
 
     setOf(
-        RaidTask(),
+        FarmListSendTask(),
         BuildingQueueTask(),
         ArmyQueueTask(),
     ).asSequence().shuffled().forEach {

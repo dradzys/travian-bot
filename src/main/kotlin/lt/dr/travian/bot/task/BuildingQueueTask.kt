@@ -48,25 +48,41 @@ data class BuildOrderGroup(val villageId: Int, val buildOrder: Set<BuildQueueReq
 class BuildingQueueTask : RescheduledTimerTask() {
 
     companion object {
-        private val FIRST_VILLAGE_BUILD_ORDER = setOf(
-            BuildingQueueRequest("Warehouse", 20),
-            BuildingQueueRequest("Main Building", 20),
-        )
         private val CAPITAL_VILLAGE_BUILD_ORDER = setOf(
-            ResourceFieldQueueRequest(1, 9),
-            ResourceFieldQueueRequest(2, 9),
-            ResourceFieldQueueRequest(3, 9),
-            BuildingQueueRequest("Barracks", 12),
-            BuildingQueueRequest("Warehouse", 18),
+            ResourceFieldQueueRequest(1, 7),
+            ResourceFieldQueueRequest(2, 7),
+            ResourceFieldQueueRequest(3, 7),
+            ResourceFieldQueueRequest(4, 7),
+            ResourceFieldQueueRequest(5, 7),
+            ResourceFieldQueueRequest(6, 7),
+            ResourceFieldQueueRequest(7, 7),
+            ResourceFieldQueueRequest(8, 7),
+            ResourceFieldQueueRequest(9, 7),
+            ResourceFieldQueueRequest(10, 7),
+            ResourceFieldQueueRequest(11, 7),
+            ResourceFieldQueueRequest(12, 7),
+            ResourceFieldQueueRequest(13, 7),
+            ResourceFieldQueueRequest(14, 7),
+            ResourceFieldQueueRequest(15, 7),
+            ResourceFieldQueueRequest(16, 7),
+            ResourceFieldQueueRequest(17, 7),
+            ResourceFieldQueueRequest(18, 7),
+
+            BuildingQueueRequest("Academy", 10),
+            BuildingQueueRequest("Residence", 10),
+            BuildingQueueRequest("Marketplace", 12),
+            BuildingQueueRequest("Warehouse", 14),
+            BuildingQueueRequest("Granary", 14),
+            BuildingQueueRequest("Cranny", 10),
+            BuildingQueueRequest("Main Building", 16),
         )
 
         private val BUILD_ORDER_GROUPS = setOf(
-            BuildOrderGroup(18614, FIRST_VILLAGE_BUILD_ORDER),
-            BuildOrderGroup(22111, CAPITAL_VILLAGE_BUILD_ORDER),
+            BuildOrderGroup(20217, CAPITAL_VILLAGE_BUILD_ORDER),
         )
 
         private val LOGGER = LoggerFactory.getLogger(this::class.java)
-        private val RESCHEDULE_RANGE_MILLIS = (350_000L..600_000L)
+        private val RESCHEDULE_RANGE_MILLIS = (150_000L..250_000L)
         private val RANDOM_ADDITIONAL_RANGE_MILLIS = (1111L..5555L)
     }
 
@@ -101,6 +117,8 @@ class BuildingQueueTask : RescheduledTimerTask() {
     }
 
     private fun isQueueRunning(villageId: Int): Boolean {
+        // TODO update function to queue buildings if queue is not full,
+        //  including case when one thing is under construction and another can be queued
         DRIVER.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
         return DRIVER.findElements(
             ByXPath("//div[@class=\"buildingList\"]")
