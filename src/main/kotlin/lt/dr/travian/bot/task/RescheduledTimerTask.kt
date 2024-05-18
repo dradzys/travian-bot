@@ -4,6 +4,7 @@ import lt.dr.travian.bot.TIMER
 import lt.dr.travian.bot.auth.AuthService
 import org.slf4j.LoggerFactory
 import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * A specialized implementation of java.util.TimerTask, which
@@ -13,6 +14,9 @@ abstract class RescheduledTimerTask(
     private val authService: AuthService = AuthService.getInstance()
 ) : TimerTask() {
 
+    private val failedTaskCount = AtomicInteger(0)
+    protected var recoverThreshold = 3
+
     override fun run() {
         LOGGER.info("${this.javaClass.simpleName} started")
         kotlin.runCatching {
@@ -20,12 +24,20 @@ abstract class RescheduledTimerTask(
                 authService.authenticate()
                 execute()
                 schedule(scheduleDelay())
+                failedTaskCount.set(0)
             } else {
                 LOGGER.info("${this.javaClass.simpleName} is on coolDown period")
             }
+        }.onFailure {
+            failedTaskCount.incrementAndGet()
+            LOGGER.info("${this.javaClass.simpleName} failed", it)
+        }.recover {
+            if (shouldRecoverFailedTask()) {
+                schedule(recoverDelay())
+            } else {
+                LOGGER.warn("${this.javaClass.simpleName} failed too many times. Stopping further recovery.")
+            }
         }
-            .onFailure { LOGGER.info("${this.javaClass.simpleName} failed", it) }
-            .recover { schedule(recoverDelay()) }
         LOGGER.info("${this.javaClass.simpleName} completed")
     }
 
@@ -37,6 +49,8 @@ abstract class RescheduledTimerTask(
 
     private fun recoverDelay(): Long =
         RECOVER_DELAY_RANGE.random() + RANDOM_ADDITIONAL_RECOVER_RANGE.random()
+
+    private fun shouldRecoverFailedTask() = failedTaskCount.get() < recoverThreshold
 
     abstract fun clone(): RescheduledTimerTask
 

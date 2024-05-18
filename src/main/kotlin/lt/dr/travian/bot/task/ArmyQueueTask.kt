@@ -6,6 +6,7 @@ import lt.dr.travian.bot.TRAVIAN_SERVER
 import org.openqa.selenium.By.ByCssSelector
 import org.openqa.selenium.By.ByXPath
 import org.slf4j.LoggerFactory
+import java.time.LocalDateTime
 
 sealed interface ArmyQueueRequest {
     val troopId: String
@@ -46,7 +47,7 @@ class ArmyQueueTask : RescheduledTimerTask() {
         private val RANDOM_ADDITIONAL_RANGE_MILLIS = (6_666L..8_888L)
     }
 
-    override fun isOnCoolDown() = false
+    override fun isOnCoolDown() = LocalDateTime.now().hour in 3 until 4
 
     override fun execute() {
         ARMY_ORDER_GROUPS.forEach {

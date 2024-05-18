@@ -7,6 +7,7 @@ import org.openqa.selenium.By.ByCssSelector
 import org.openqa.selenium.By.ByXPath
 import org.openqa.selenium.WebElement
 import org.slf4j.LoggerFactory
+import java.time.LocalDateTime
 
 data class BuildingSlot(
     val id: Int?,
@@ -49,32 +50,32 @@ class BuildingQueueTask : RescheduledTimerTask() {
 
     companion object {
         private val CAPITAL_VILLAGE_BUILD_ORDER = setOf(
-            ResourceFieldQueueRequest(1, 7),
-            ResourceFieldQueueRequest(2, 7),
-            ResourceFieldQueueRequest(3, 7),
-            ResourceFieldQueueRequest(4, 7),
-            ResourceFieldQueueRequest(5, 7),
-            ResourceFieldQueueRequest(6, 7),
-            ResourceFieldQueueRequest(7, 7),
-            ResourceFieldQueueRequest(8, 7),
-            ResourceFieldQueueRequest(9, 7),
-            ResourceFieldQueueRequest(10, 7),
-            ResourceFieldQueueRequest(11, 7),
-            ResourceFieldQueueRequest(12, 7),
-            ResourceFieldQueueRequest(13, 7),
-            ResourceFieldQueueRequest(14, 7),
-            ResourceFieldQueueRequest(15, 7),
-            ResourceFieldQueueRequest(16, 7),
             ResourceFieldQueueRequest(17, 7),
             ResourceFieldQueueRequest(18, 7),
 
             BuildingQueueRequest("Academy", 10),
             BuildingQueueRequest("Residence", 10),
             BuildingQueueRequest("Marketplace", 12),
-            BuildingQueueRequest("Warehouse", 14),
-            BuildingQueueRequest("Granary", 14),
+            BuildingQueueRequest("Warehouse", 12),
+            BuildingQueueRequest("Granary", 12),
             BuildingQueueRequest("Cranny", 10),
-            BuildingQueueRequest("Main Building", 16),
+
+            ResourceFieldQueueRequest(1, 9),
+            ResourceFieldQueueRequest(2, 9),
+            ResourceFieldQueueRequest(3, 9),
+            ResourceFieldQueueRequest(4, 9),
+            ResourceFieldQueueRequest(5, 9),
+            ResourceFieldQueueRequest(6, 9),
+            ResourceFieldQueueRequest(7, 9),
+            ResourceFieldQueueRequest(8, 9),
+            ResourceFieldQueueRequest(9, 9),
+            ResourceFieldQueueRequest(10, 9),
+            ResourceFieldQueueRequest(11, 9),
+            ResourceFieldQueueRequest(12, 9),
+            ResourceFieldQueueRequest(13, 9),
+            ResourceFieldQueueRequest(14, 9),
+            ResourceFieldQueueRequest(15, 9),
+            ResourceFieldQueueRequest(16, 9),
         )
 
         private val BUILD_ORDER_GROUPS = setOf(
@@ -86,7 +87,7 @@ class BuildingQueueTask : RescheduledTimerTask() {
         private val RANDOM_ADDITIONAL_RANGE_MILLIS = (1111L..5555L)
     }
 
-    override fun isOnCoolDown() = false
+    override fun isOnCoolDown() = LocalDateTime.now().hour in 3 until 4
 
     override fun execute() {
         BUILD_ORDER_GROUPS.forEach {
