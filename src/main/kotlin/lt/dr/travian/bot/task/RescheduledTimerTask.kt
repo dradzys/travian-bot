@@ -23,11 +23,11 @@ abstract class RescheduledTimerTask(
             if (!isOnCoolDown()) {
                 authService.authenticate()
                 execute()
-                schedule(scheduleDelay())
                 failedTaskCount.set(0)
             } else {
                 LOGGER.info("${this.javaClass.simpleName} is on coolDown period")
             }
+            schedule(scheduleDelay())
         }.onFailure {
             failedTaskCount.incrementAndGet()
             LOGGER.info("${this.javaClass.simpleName} failed", it)
