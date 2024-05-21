@@ -54,47 +54,12 @@ class BuildingQueueTask : RescheduledTimerTask() {
             BuildingQueueRequest("Hero's Mansion", 6),
             BuildingQueueRequest("Rally Point", 2),
             BuildingQueueRequest("Barracks", 10),
-
-            ResourceFieldQueueRequest(1, 9),
-            ResourceFieldQueueRequest(3, 9),
-            ResourceFieldQueueRequest(4, 9),
-            ResourceFieldQueueRequest(5, 9),
-            ResourceFieldQueueRequest(6, 9),
-            ResourceFieldQueueRequest(7, 9),
-            ResourceFieldQueueRequest(10, 9),
-            ResourceFieldQueueRequest(11, 9),
-            ResourceFieldQueueRequest(14, 9),
-            ResourceFieldQueueRequest(16, 9),
-            ResourceFieldQueueRequest(17, 9),
-            ResourceFieldQueueRequest(18, 9),
-            BuildingQueueRequest("Warehouse", 16),
-            BuildingQueueRequest("Granary", 16),
         )
 
         private val FIRST_VILLAGE_BUILD_ORDER = setOf(
             BuildingQueueRequest("Main Building", 7),
             ResourceFieldQueueRequest(3, 3),
             ResourceFieldQueueRequest(6, 3),
-            ResourceFieldQueueRequest(7, 3),
-            ResourceFieldQueueRequest(10, 3),
-            ResourceFieldQueueRequest(11, 3),
-
-            ResourceFieldQueueRequest(14, 3),
-            ResourceFieldQueueRequest(16, 3),
-            ResourceFieldQueueRequest(17, 3),
-            ResourceFieldQueueRequest(18, 3),
-            BuildingQueueRequest("Warehouse", 5),
-            BuildingQueueRequest("Granary", 5),
-
-            ResourceFieldQueueRequest(1, 2),
-            ResourceFieldQueueRequest(2, 2),
-            ResourceFieldQueueRequest(4, 2),
-            ResourceFieldQueueRequest(5, 2),
-            ResourceFieldQueueRequest(8, 2),
-            ResourceFieldQueueRequest(9, 2),
-            ResourceFieldQueueRequest(12, 2),
-            ResourceFieldQueueRequest(13, 2),
-            ResourceFieldQueueRequest(15, 2),
         )
 
         private val BUILD_ORDER_GROUPS = setOf(
