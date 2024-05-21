@@ -50,36 +50,56 @@ class BuildingQueueTask : RescheduledTimerTask() {
 
     companion object {
         private val CAPITAL_VILLAGE_BUILD_ORDER = setOf(
-            ResourceFieldQueueRequest(17, 7),
-            ResourceFieldQueueRequest(18, 7),
-
-            BuildingQueueRequest("Academy", 10),
-            BuildingQueueRequest("Residence", 10),
-            BuildingQueueRequest("Marketplace", 12),
-            BuildingQueueRequest("Warehouse", 12),
-            BuildingQueueRequest("Granary", 12),
-            BuildingQueueRequest("Cranny", 10),
+            BuildingQueueRequest("Barracks", 7),
+            BuildingQueueRequest("Hero's Mansion", 6),
+            BuildingQueueRequest("Rally Point", 2),
+            BuildingQueueRequest("Barracks", 10),
 
             ResourceFieldQueueRequest(1, 9),
-            ResourceFieldQueueRequest(2, 9),
             ResourceFieldQueueRequest(3, 9),
             ResourceFieldQueueRequest(4, 9),
             ResourceFieldQueueRequest(5, 9),
             ResourceFieldQueueRequest(6, 9),
             ResourceFieldQueueRequest(7, 9),
-            ResourceFieldQueueRequest(8, 9),
-            ResourceFieldQueueRequest(9, 9),
             ResourceFieldQueueRequest(10, 9),
             ResourceFieldQueueRequest(11, 9),
-            ResourceFieldQueueRequest(12, 9),
-            ResourceFieldQueueRequest(13, 9),
             ResourceFieldQueueRequest(14, 9),
-            ResourceFieldQueueRequest(15, 9),
             ResourceFieldQueueRequest(16, 9),
+            ResourceFieldQueueRequest(17, 9),
+            ResourceFieldQueueRequest(18, 9),
+            BuildingQueueRequest("Warehouse", 16),
+            BuildingQueueRequest("Granary", 16),
+        )
+
+        private val FIRST_VILLAGE_BUILD_ORDER = setOf(
+            BuildingQueueRequest("Main Building", 7),
+            ResourceFieldQueueRequest(3, 3),
+            ResourceFieldQueueRequest(6, 3),
+            ResourceFieldQueueRequest(7, 3),
+            ResourceFieldQueueRequest(10, 3),
+            ResourceFieldQueueRequest(11, 3),
+
+            ResourceFieldQueueRequest(14, 3),
+            ResourceFieldQueueRequest(16, 3),
+            ResourceFieldQueueRequest(17, 3),
+            ResourceFieldQueueRequest(18, 3),
+            BuildingQueueRequest("Warehouse", 5),
+            BuildingQueueRequest("Granary", 5),
+
+            ResourceFieldQueueRequest(1, 2),
+            ResourceFieldQueueRequest(2, 2),
+            ResourceFieldQueueRequest(4, 2),
+            ResourceFieldQueueRequest(5, 2),
+            ResourceFieldQueueRequest(8, 2),
+            ResourceFieldQueueRequest(9, 2),
+            ResourceFieldQueueRequest(12, 2),
+            ResourceFieldQueueRequest(13, 2),
+            ResourceFieldQueueRequest(15, 2),
         )
 
         private val BUILD_ORDER_GROUPS = setOf(
             BuildOrderGroup(20217, CAPITAL_VILLAGE_BUILD_ORDER),
+            BuildOrderGroup(23084, FIRST_VILLAGE_BUILD_ORDER),
         )
 
         private val LOGGER = LoggerFactory.getLogger(this::class.java)
@@ -90,13 +110,7 @@ class BuildingQueueTask : RescheduledTimerTask() {
     override fun isOnCoolDown() = LocalDateTime.now().hour in 3 until 4
 
     override fun execute() {
-        BUILD_ORDER_GROUPS.forEach {
-            LOGGER.info("Processing villageId: ${it.villageId}")
-            if (isQueueRunning(it.villageId)) {
-                return@forEach
-            }
-            processBuildOrderGroup(it)
-        }
+        BUILD_ORDER_GROUPS.forEach { processBuildOrderGroup(it) }
     }
 
     override fun scheduleDelay(): Long = getRandomDelay()
@@ -106,20 +120,30 @@ class BuildingQueueTask : RescheduledTimerTask() {
     }
 
     private fun processBuildOrderGroup(buildOrderGroup: BuildOrderGroup) {
-        buildOrderGroup.buildOrder.filter { !it.wantedLevelReached }.forEach { buildQueueRequest ->
-            when (buildQueueRequest) {
-                is BuildingQueueRequest -> upgradeBuilding(buildQueueRequest, buildOrderGroup)
-                is ResourceFieldQueueRequest -> upgradeResourceField(
-                    buildQueueRequest,
-                    buildOrderGroup
-                )
-            }
+        run group@{
+            buildOrderGroup.buildOrder
+                .filter { !it.wantedLevelReached }
+                .forEach { buildQueueRequest ->
+                    if (isQueueRunning(buildOrderGroup.villageId)) {
+                        return@group
+                    }
+                    LOGGER.info("Processing building request: $buildQueueRequest, in ${buildOrderGroup.villageId}")
+                    when (buildQueueRequest) {
+                        is BuildingQueueRequest -> upgradeBuilding(
+                            buildQueueRequest,
+                            buildOrderGroup
+                        )
+
+                        is ResourceFieldQueueRequest -> upgradeResourceField(
+                            buildQueueRequest,
+                            buildOrderGroup
+                        )
+                    }
+                }
         }
     }
 
     private fun isQueueRunning(villageId: Int): Boolean {
-        // TODO update function to queue buildings if queue is not full,
-        //  including case when one thing is under construction and another can be queued
         DRIVER.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
         return DRIVER.findElements(
             ByXPath("//div[@class=\"buildingList\"]")

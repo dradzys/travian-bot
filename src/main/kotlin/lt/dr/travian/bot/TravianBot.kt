@@ -63,6 +63,6 @@ private fun buildChromeDrive(): ChromeDriver {
 private fun ChromeDriver.fluentWait(): Wait<ChromeDriver> {
     return FluentWait(this)
         .withTimeout(Duration.ofSeconds(5))
-        .pollingEvery(Duration.ofMillis((300L..500L).random()))
+        .pollingEvery(Duration.ofMillis((1000L..2500L).random()))
         .ignoring(ElementNotInteractableException::class.java)
 }

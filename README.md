@@ -61,7 +61,7 @@
               BuildOrderGroup(22111, CAPITAL_VILLAGE_BUILD_ORDER),
           )
   ```
-    * `RaidQueueTask.kt` for raiding oasis and inactive villages.
+    * `RaidQueueTask.kt` for raiding oasis and inactive villages manually by providing coordinates.
         * Note, that you must provide correct type of raid unit.
         * For oasis, if they are occupied, it will not be raided.
         * For village, if it has been captured by Natars, it will not be raided.
@@ -81,6 +81,18 @@
             RaidUnitGroup(22111, CAPITAL_RAID_UNITS),
         )
   ```
+    * `FarmListSendTask.kt` - raiding using gold clubs farm list feature. Just configure the farm
+      list in travian, and it will send all of them
+* Schedule tasks:
+    ```kotlin
+    setOf(
+        FarmListSendTask(),
+        BuildingQueueTask(),
+        ArmyQueueTask(),
+    ).asSequence().shuffled().forEach {
+        TIMER.schedule(it, 1000L)
+    }
+    ```
 
 ##### Running:
 
@@ -120,8 +132,9 @@ setOf(
 * [ ] Would be nice to add runtime configuration for tasks, so that you can update without
   recompiling the code.
 * [ ] We need a lot more manual testing to ensure that the bot is working as expected.
-  * [ ] different tribes, different buildings, different troops.
-  * [ ] different bot detection preventions mechanisms(random click intervals, task execution intervals, cool-downs)
+    * [ ] different tribes, different buildings, different troops.
+    * [ ] different bot detection preventions mechanisms(random click intervals, task execution
+      intervals, cool-downs)
 * [ ] BuildingQueueTask for palisade/wall is not working. The travian-ui for palisade is not a
   clickable `<a>` tag, but rather a `<svg>` element.
 * [ ] BuildingQueueTask for a building that is not already placed is not supported.
