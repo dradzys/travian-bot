@@ -1,12 +1,22 @@
 package lt.dr.travian.bot.task
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo
+import com.fasterxml.jackson.annotation.JsonTypeName
+import com.fasterxml.jackson.core.type.TypeReference
+import lt.dr.travian.bot.CheckSumUtils
 import lt.dr.travian.bot.DRIVER
 import lt.dr.travian.bot.FLUENT_WAIT
 import lt.dr.travian.bot.TRAVIAN_SERVER
+import lt.dr.travian.bot.objectMapper
+import lt.dr.travian.bot.task.BuildQueueRequest.BuildType.BUILDING
+import lt.dr.travian.bot.task.BuildQueueRequest.BuildType.RESOURCE_FIELD
+import org.openqa.selenium.By.ByClassName
 import org.openqa.selenium.By.ByCssSelector
 import org.openqa.selenium.By.ByXPath
 import org.openqa.selenium.WebElement
 import org.slf4j.LoggerFactory
+import java.io.File
+import java.io.IOException
 import java.time.LocalDateTime
 
 data class BuildingSlot(
@@ -16,9 +26,12 @@ data class BuildingSlot(
     val isUnderConstruction: Boolean,
 )
 
-sealed interface BuildQueueRequest {
-    val wantedLevel: Int
-    var wantedLevelReached: Boolean
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+sealed class BuildQueueRequest(
+    open val type: BuildType,
+    open val wantedLevel: Int,
+    open var wantedLevelReached: Boolean
+) {
 
     fun canLevelUp(buildingSlot: BuildingSlot): Boolean {
         if (buildingSlot.level != null && buildingSlot.level >= this.wantedLevel) {
@@ -30,58 +43,93 @@ sealed interface BuildQueueRequest {
                 && !buildingSlot.isUnderConstruction
                 && (buildingSlot.level != null && buildingSlot.level < this.wantedLevel)
     }
+
+    @JsonTypeName("RESOURCE_FIELD")
+    data class ResourceFieldRequest(
+        val id: Int,
+        override val wantedLevel: Int,
+        override var wantedLevelReached: Boolean = false
+    ) : BuildQueueRequest(RESOURCE_FIELD, wantedLevel, wantedLevelReached)
+
+    @JsonTypeName("BUILDING")
+    data class BuildingRequest(
+        val name: String,
+        override val wantedLevel: Int,
+        override var wantedLevelReached: Boolean = false
+    ) : BuildQueueRequest(BUILDING, wantedLevel, wantedLevelReached)
+
+    enum class BuildType {
+        BUILDING, RESOURCE_FIELD
+    }
 }
 
-data class ResourceFieldQueueRequest(
-    val id: Int,
-    override val wantedLevel: Int,
-    override var wantedLevelReached: Boolean = false
-) : BuildQueueRequest
+data class BuildOrderGroup(val villageId: Int, val buildOrder: List<BuildQueueRequest>)
 
-data class BuildingQueueRequest(
-    val name: String,
-    override val wantedLevel: Int,
-    override var wantedLevelReached: Boolean = false
-) : BuildQueueRequest
+class BuildingQueueTask(private val villageId: Int) : RescheduledTimerTask() {
 
-data class BuildOrderGroup(val villageId: Int, val buildOrder: Set<BuildQueueRequest>)
-
-class BuildingQueueTask : RescheduledTimerTask() {
+    private var buildOrderGroup: BuildOrderGroup? = null
+    private var lastBuildQueueFileCheckSum: String? = null
 
     companion object {
-        private val CAPITAL_VILLAGE_BUILD_ORDER = setOf(
-            BuildingQueueRequest("Barracks", 7),
-            BuildingQueueRequest("Hero's Mansion", 6),
-            BuildingQueueRequest("Rally Point", 2),
-            BuildingQueueRequest("Barracks", 10),
-        )
-
-        private val FIRST_VILLAGE_BUILD_ORDER = setOf(
-            BuildingQueueRequest("Main Building", 7),
-            ResourceFieldQueueRequest(3, 3),
-            ResourceFieldQueueRequest(6, 3),
-        )
-
-        private val BUILD_ORDER_GROUPS = setOf(
-            BuildOrderGroup(20217, CAPITAL_VILLAGE_BUILD_ORDER),
-            BuildOrderGroup(23084, FIRST_VILLAGE_BUILD_ORDER),
-        )
-
         private val LOGGER = LoggerFactory.getLogger(this::class.java)
-        private val RESCHEDULE_RANGE_MILLIS = (150_000L..250_000L)
+        private val RESCHEDULE_RANGE_MILLIS = (300_000L..400_000L)
         private val RANDOM_ADDITIONAL_RANGE_MILLIS = (1111L..5555L)
     }
 
     override fun isOnCoolDown() = LocalDateTime.now().hour in 3 until 4
 
     override fun execute() {
-        BUILD_ORDER_GROUPS.forEach { processBuildOrderGroup(it) }
+        fetchBuildOrderGroup()?.let { processBuildOrderGroup(it) }
     }
 
-    override fun scheduleDelay(): Long = getRandomDelay()
+    override fun scheduleDelay(): Long = getQueueTimeLeftInMillis() ?: getRandomDelay()
 
     override fun clone(): RescheduledTimerTask {
-        return BuildingQueueTask()
+        val buildingQueueTask = BuildingQueueTask(this.villageId)
+        buildingQueueTask.buildOrderGroup = this.buildOrderGroup
+        buildingQueueTask.lastBuildQueueFileCheckSum = this.lastBuildQueueFileCheckSum
+        return buildingQueueTask
+    }
+
+    private fun getQueueTimeLeftInMillis(): Long? {
+        return kotlin.runCatching {
+            DRIVER.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
+            DRIVER.findElements(
+                ByXPath("//div[@class=\"buildingList\"]/ul/li[last()]")
+            ).firstOrNull()?.let { buildQueueLastItem ->
+                buildQueueLastItem.findElement(ByClassName("timer"))
+                    ?.getAttribute("value")
+                    ?.toLongOrNull()
+                    ?.times(1000)
+            }
+        }.getOrNull()
+    }
+
+    private fun fetchBuildOrderGroup(): BuildOrderGroup? {
+        return kotlin.runCatching {
+            val buildQueueFile = File("src/main/resources/build-queue.json")
+            val checkSum = CheckSumUtils.calculateCheckSum(buildQueueFile)
+            if (isBuildQueueUnchanged(checkSum)) return buildOrderGroup
+
+            LOGGER.info("Fetching build-queue.json")
+            val buildOrderGroup = objectMapper.readValue(
+                buildQueueFile,
+                object : TypeReference<List<BuildOrderGroup>>() {}
+            ).firstOrNull { it.villageId == villageId }
+            this.buildOrderGroup = buildOrderGroup
+            this.lastBuildQueueFileCheckSum = checkSum
+            buildOrderGroup
+        }.onFailure {
+            if (it.cause is IOException) {
+                LOGGER.error("Failed reading build-queue.json", it)
+            } else {
+                LOGGER.error("BuildOrderGroup not found for villageId: $villageId", it)
+            }
+        }.getOrNull()
+    }
+
+    private fun isBuildQueueUnchanged(checkSum: String?): Boolean {
+        return this.buildOrderGroup != null && this.lastBuildQueueFileCheckSum == checkSum
     }
 
     private fun processBuildOrderGroup(buildOrderGroup: BuildOrderGroup) {
@@ -94,12 +142,12 @@ class BuildingQueueTask : RescheduledTimerTask() {
                     }
                     LOGGER.info("Processing building request: $buildQueueRequest, in ${buildOrderGroup.villageId}")
                     when (buildQueueRequest) {
-                        is BuildingQueueRequest -> upgradeBuilding(
+                        is BuildQueueRequest.BuildingRequest -> upgradeBuilding(
                             buildQueueRequest,
                             buildOrderGroup
                         )
 
-                        is ResourceFieldQueueRequest -> upgradeResourceField(
+                        is BuildQueueRequest.ResourceFieldRequest -> upgradeResourceField(
                             buildQueueRequest,
                             buildOrderGroup
                         )
@@ -116,7 +164,7 @@ class BuildingQueueTask : RescheduledTimerTask() {
     }
 
     private fun upgradeBuilding(
-        buildingQueueRequest: BuildingQueueRequest,
+        buildingQueueRequest: BuildQueueRequest.BuildingRequest,
         buildOrderGroup: BuildOrderGroup
     ) {
         DRIVER.get("$TRAVIAN_SERVER/dorf2.php?newdid=${buildOrderGroup.villageId}")
@@ -142,7 +190,7 @@ class BuildingQueueTask : RescheduledTimerTask() {
     }
 
     private fun upgradeResourceField(
-        resourceFieldQueueRequest: ResourceFieldQueueRequest,
+        resourceFieldQueueRequest: BuildQueueRequest.ResourceFieldRequest,
         buildOrderGroup: BuildOrderGroup
     ) {
         val resourceField = getResourceFieldById(
@@ -168,12 +216,14 @@ class BuildingQueueTask : RescheduledTimerTask() {
         return resourceFieldLinks
             .filter { it.getAttribute("href").contains("/build.php?id=") }
             .map {
-                BuildingSlot(
+                val slot = BuildingSlot(
                     id = getBuildingId(it),
                     level = getResourceLevel(it),
                     isUpgradable = isUpgradable(it),
                     isUnderConstruction = isUnderConstruction(it),
                 )
+                LOGGER.info("buildingSlot: $slot")
+                slot
             }
             .filter { it.id != null && it.level != null }
     }

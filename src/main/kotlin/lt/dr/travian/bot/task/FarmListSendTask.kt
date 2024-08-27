@@ -14,11 +14,11 @@ class FarmListSendTask : RescheduledTimerTask() {
         private val LOGGER = LoggerFactory.getLogger(this::class.java)
 
         // 25 to 30 minutes
-        private val RESCHEDULE_RANGE_MILLIS = (1_500_000L..1_800_000L)
+        private val RESCHEDULE_RANGE_MILLIS = (1_250_000L..1_300_000L)
         private val RANDOM_ADDITIONAL_RANGE_MILLIS = (1111L..5555L)
     }
 
-    override fun isOnCoolDown() = LocalDateTime.now().hour in 3 until 5
+    override fun isOnCoolDown() = LocalDateTime.now().hour in 3 until 4
 
     override fun execute() {
         DRIVER.get("$TRAVIAN_SERVER/build.php?id=39&gid=16&tt=99")

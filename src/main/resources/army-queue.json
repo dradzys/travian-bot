@@ -1,0 +1,8 @@
+[
+  {
+    "villageId": 19421,
+    "armyOrder": [
+      {"troopId": "t1", "type": "BARRACKS", "amount": 2}
+    ]
+  }
+]

@@ -1,5 +1,6 @@
 package lt.dr.travian.bot
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import lt.dr.travian.bot.auth.AuthService
 import lt.dr.travian.bot.task.ArmyQueueTask
 import lt.dr.travian.bot.task.BuildingQueueTask
@@ -14,10 +15,11 @@ import java.time.Duration
 import java.util.*
 import kotlin.system.exitProcess
 
-const val TRAVIAN_SERVER = "https://ts30.x3.international.travian.com"
+const val TRAVIAN_SERVER = "https://ts20.x2.europe.travian.com"
 val TIMER = Timer()
 val DRIVER = buildChromeDrive()
 val FLUENT_WAIT = DRIVER.fluentWait()
+val objectMapper = jacksonObjectMapper()
 private val LOGGER = LoggerFactory.getLogger("TravianBot")
 
 fun main() {
@@ -29,8 +31,8 @@ fun main() {
 
     setOf(
         FarmListSendTask(),
-        BuildingQueueTask(),
-        ArmyQueueTask(),
+        BuildingQueueTask(19421),
+        ArmyQueueTask(19421),
     ).asSequence().shuffled().forEach {
         TIMER.schedule(it, 1000L)
     }

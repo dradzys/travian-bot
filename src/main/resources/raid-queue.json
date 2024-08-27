@@ -1,0 +1,8 @@
+[
+  {
+    "villageId": 19421,
+    "raidOrder": [
+      {"x": -64, "y": 36, "raidUnitType": "OASIS", "troopId": "t4", "troopAmount": 1}
+    ]
+  }
+]
