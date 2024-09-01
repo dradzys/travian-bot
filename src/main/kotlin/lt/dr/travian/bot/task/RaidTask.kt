@@ -1,11 +1,8 @@
 package lt.dr.travian.bot.task
 
-import com.fasterxml.jackson.core.type.TypeReference
-import lt.dr.travian.bot.CheckSumUtils
 import lt.dr.travian.bot.DRIVER
 import lt.dr.travian.bot.FLUENT_WAIT
 import lt.dr.travian.bot.TRAVIAN_SERVER
-import lt.dr.travian.bot.objectMapper
 import lt.dr.travian.bot.task.RaidUnitType.OASIS
 import lt.dr.travian.bot.task.RaidUnitType.VILLAGE
 import org.openqa.selenium.By.ByCssSelector
@@ -14,8 +11,6 @@ import org.openqa.selenium.By.ByLinkText
 import org.openqa.selenium.By.ByXPath
 import org.openqa.selenium.WebElement
 import org.slf4j.LoggerFactory
-import java.io.File
-import java.io.IOException
 import java.time.LocalDateTime
 
 enum class RaidUnitType { OASIS, VILLAGE }
@@ -52,26 +47,24 @@ data class RaidUnit(
 
 }
 
-data class RaidUnitGroup(val villageId: Int, val raidOrder: Set<RaidUnit>)
-
 /**
  * Manual raid task. Goes through the raid unit groups and raids the villages/oasis one-by-one.
+ * Occupied oasis or oasis with animals will be skipped.
+ * Villages that have turned into Natars will be skipped.
  */
-class RaidTask(private val villageId: Int) : RescheduledTimerTask() {
-
-    private var raidUnitGroup: RaidUnitGroup? = null
-    private var lastRaidQueueFileCheckSum: String? = null
+class RaidTask(private val villageId: Int) : RuntimeTask<RaidUnit>() {
 
     companion object {
         private val LOGGER = LoggerFactory.getLogger(this::class.java)
         private val RESCHEDULE_RANGE_MILLIS = (520_000L..720_000L)
         private val RANDOM_ADDITIONAL_RANGE_MILLIS = (1111L..3333L)
+        private const val RAID_QUEUE_FILE_PATH = "src/main/resources/raid-queue.json"
     }
 
     override fun isOnCoolDown() = false
 
     override fun execute() {
-        fetchRaidUnitGroup(this.villageId)?.let { processRaidUnitGroup(it) }
+        fetchOrderGroup(this.villageId, RAID_QUEUE_FILE_PATH, RaidUnit::class.java)?.let { processRaidUnitGroup(it) }
     }
 
     override fun scheduleDelay() =
@@ -79,42 +72,16 @@ class RaidTask(private val villageId: Int) : RescheduledTimerTask() {
 
     override fun clone(): RescheduledTimerTask {
         val raidTask = RaidTask(this.villageId)
-        raidTask.raidUnitGroup = this.raidUnitGroup
-        raidTask.lastRaidQueueFileCheckSum = this.lastRaidQueueFileCheckSum
+        raidTask.orderGroup = this.orderGroup
+        raidTask.lastQueueFileChecksum = this.lastQueueFileChecksum
         return raidTask
     }
 
-    private fun fetchRaidUnitGroup(villageId: Int): RaidUnitGroup? {
-        return kotlin.runCatching {
-            val raidQueueFile = File("src/main/resources/raid-queue.json")
-            val checkSum = CheckSumUtils.calculateCheckSum(raidQueueFile)
-            if (isRaidQueueUnchanged(checkSum)) return this.raidUnitGroup
+    private fun processRaidUnitGroup(raidUnitGroup: OrderGroup<RaidUnit>) {
+        val troopIds = raidUnitGroup.orderQueue.map { it.troopId }.toSet()
+        if (troopsMissing(raidUnitGroup.villageId, troopIds)) return
 
-            LOGGER.info("Fetching raid-queue.json")
-            val raidUnitGroup = objectMapper.readValue(
-                raidQueueFile,
-                object : TypeReference<List<RaidUnitGroup>>() {}
-            ).firstOrNull { it.villageId == villageId }
-            this.raidUnitGroup = raidUnitGroup
-            this.lastRaidQueueFileCheckSum = checkSum
-            raidUnitGroup
-        }.onFailure {
-            if (it.cause is IOException) {
-                LOGGER.error("Failed reading raid-queue.json", it)
-            } else {
-                LOGGER.error("RaidUnitGroup not found for villageId: $villageId", it)
-            }
-        }.getOrNull()
-    }
-
-    private fun isRaidQueueUnchanged(checkSum: String?): Boolean {
-        return this.raidUnitGroup != null && this.lastRaidQueueFileCheckSum == checkSum
-    }
-
-    private fun processRaidUnitGroup(raidUnitGroup: RaidUnitGroup) {
-        if (troopsMissing(raidUnitGroup.villageId)) return
-
-        raidUnitGroup.raidOrder
+        raidUnitGroup.orderQueue
             .sortedWith(compareBy(nullsFirst()) { it.lastSent })
             .forEach { raidUnit ->
                 kotlin.runCatching {
@@ -128,20 +95,22 @@ class RaidTask(private val villageId: Int) : RescheduledTimerTask() {
             }
     }
 
-    private fun troopsMissing(villageId: Int): Boolean {
-        val troopList = getTroops(villageId)
-        // TODO: currently only works with gauls t4 troops, need to update this to match what is configured in the raid-queue.json
-        return troopList.isEmpty() || troopList[3].second <= 0
+    private fun troopsMissing(villageId: Int, raidTroopIds: Set<String>): Boolean {
+        val currentVillageTroops = getTroopMap(villageId)
+        return raidTroopIds.all { troopId ->
+            currentVillageTroops[troopId]?.let { amount -> amount <= 0 } ?: true
+        }
     }
 
-    private fun getTroops(villageId: Int): List<Pair<String, Int>> {
+    private fun getTroopMap(villageId: Int): Map<String, Int> {
         DRIVER.get("$TRAVIAN_SERVER/build.php?newdid=$villageId&id=39&gid=16&tt=1&filter=3")
         val troopOverviewWebElement = DRIVER.findElements(
-            ByXPath("//*[@id=\"build\"]/div/table[1]/tbody[2]/tr/td")
+            ByXPath("//tbody[@class=\"units last\"]/tr/td")
         )
         FLUENT_WAIT.until { troopOverviewWebElement.firstOrNull { it.isDisplayed } ?: true }
-        return troopOverviewWebElement.mapIndexed { index, webElement ->
-            index.toString() to webElement.text.toInt()
+        var count = 0
+        return troopOverviewWebElement.associate {
+            "t${++count}" to it.text.toInt()
         }
     }
 
@@ -196,11 +165,6 @@ class RaidTask(private val villageId: Int) : RescheduledTimerTask() {
         FLUENT_WAIT.until { ttInputField.isDisplayed }
         return if (ttInputField.isEnabled) {
             ttInputField.sendKeys(raidUnit.troopAmount.toString())
-            // TODO: test if this radioInput hardcoded value 4 works in all cases
-            // for unoccupied oasis works ok
-            // for natars works ok
-            // for occupied oasis not tested
-            // for villages works ok
             val raidRadioInput = DRIVER.findElements(
                 ByXPath("//input[@value=\"4\"]")
             ).firstOrNull()

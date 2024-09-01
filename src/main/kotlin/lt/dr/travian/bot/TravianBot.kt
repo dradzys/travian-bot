@@ -17,8 +17,8 @@ import kotlin.system.exitProcess
 
 const val TRAVIAN_SERVER = "https://ts20.x2.europe.travian.com"
 val TIMER = Timer()
-val DRIVER = buildChromeDrive()
-val FLUENT_WAIT = DRIVER.fluentWait()
+var DRIVER = buildChromeDrive()
+var FLUENT_WAIT = DRIVER.fluentWait()
 val objectMapper = jacksonObjectMapper()
 private val LOGGER = LoggerFactory.getLogger("TravianBot")
 
@@ -33,13 +33,15 @@ fun main() {
         FarmListSendTask(),
         BuildingQueueTask(19421),
         ArmyQueueTask(19421),
+        BuildingQueueTask(21287),
+        ArmyQueueTask(21287),
     ).asSequence().shuffled().forEach {
         TIMER.schedule(it, 1000L)
     }
     Thread.currentThread().join()
 }
 
-private fun buildChromeDrive(): ChromeDriver {
+fun buildChromeDrive(): ChromeDriver {
     val options = ChromeOptions()
     options.addArguments(
         "start-maximized",
@@ -62,7 +64,7 @@ private fun buildChromeDrive(): ChromeDriver {
     return driver
 }
 
-private fun ChromeDriver.fluentWait(): Wait<ChromeDriver> {
+fun ChromeDriver.fluentWait(): Wait<ChromeDriver> {
     return FluentWait(this)
         .withTimeout(Duration.ofSeconds(5))
         .pollingEvery(Duration.ofMillis((1000L..2500L).random()))

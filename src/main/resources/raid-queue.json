@@ -1,8 +1,10 @@
 [
   {
     "villageId": 19421,
-    "raidOrder": [
-      {"x": -64, "y": 36, "raidUnitType": "OASIS", "troopId": "t4", "troopAmount": 1}
+    "orderQueue": [
+      {"x": -62, "y": 32, "raidUnitType": "OASIS", "troopId": "t1", "troopAmount": 1},
+      {"x": -65, "y": 38, "raidUnitType": "OASIS", "troopId": "t4", "troopAmount": 1},
+      {"x": -60, "y": 37, "raidUnitType": "VILLAGE", "troopId": "t4", "troopAmount": 1}
     ]
   }
 ]
