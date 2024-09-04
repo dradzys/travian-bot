@@ -1,13 +1,10 @@
-# travian-bot
-
-[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=dradzys_travian-bot&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=dradzys_travian-bot) [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=dradzys_travian-bot&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=dradzys_travian-bot) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=dradzys_travian-bot&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=dradzys_travian-bot)
+# travian-bot [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=dradzys_travian-bot&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=dradzys_travian-bot) [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=dradzys_travian-bot&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=dradzys_travian-bot) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=dradzys_travian-bot&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=dradzys_travian-bot)
 
 * A selenium bot to automate `travian legends` tedious tasks:
     * building: `BuildingQueueTask.kt`
     * army recruitment: `ArmyQueueTask.kt`
     * farm list raiding: `FarmListSendTask.kt`
     * raiding: `RaidTask.kt`
-
 
 # Getting started
 
