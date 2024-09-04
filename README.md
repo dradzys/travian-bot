@@ -2,28 +2,31 @@
 
 <hr>
 
-* A selenium bot to automate `travian legends` tedious tasks like `raiding`, `building`
-  , `training troops`.
-
-#### Prerequisites
-
-* JDK 17 installation
+* A selenium bot to automate `travian legends` tedious tasks:
+    * building: `BuildingQueueTask.kt`
+    * army recruitment: `ArmyQueueTask.kt`
+    * farm list raiding: `FarmListSendTask.kt`
+    * raiding: `RaidTask.kt`
 
 # Getting started
 
 <hr>
 
+##### Prerequisites to running
+
+* JDK 17 installation if running via executable
+* Docker engine if running as container
+
 ##### Configuration
 
-* Set credentials via environmental variables:
+* Set environmental variables:
     * `TRAVIAN_USERNAME`
     * `TRAVIAN_PASSWORD`
-* Set travian server url:
-    * set `TRAVIAN_SERVER` value in `TravianBot.kt` file.
-* Configure instructions for tasks at `src/main/resources`.
+    * `TRAVIAN_SERVER`. Example.: `https://ts20.x2.europe.travian.com`
+* Add instruction for task you will run at `src/main/resources`
 * Schedule tasks:
-    * add/remove as per your needs
     ```kotlin
+    // add/remove tasks as per your needs
     setOf(
         FarmListSendTask(),
         BuildingQueueTask(19421),
@@ -37,11 +40,14 @@
 
 ##### Running:
 
-* Build jar:
-    * unix based systems: `./gradlew clean build`
-    * windows: `gradlew.bat clean build`
-* Run jar:
-    * `java -jar ./build/libs/travian-bot-1.0.0.jar`
+* Via executable:
+    * Build or Download jar:
+        * unix based systems: `./gradlew clean build`
+        * windows: `gradlew.bat clean build`
+    * Run jar:
+        * `java -jar ./build/libs/travian-bot-1.0.0.jar`
+* Via Docker:
+    * TBD()
 
 <hr>
 
@@ -53,7 +59,7 @@
   method, just after authentication logic, like so:
 
 ```kotlin
-// Will run only raid task
+// Will run only build task
 setOf(BuildingQueueTask(19421)).asSequence().shuffled().forEach { TIMER.schedule(it, 1000L) }
 ```
 
@@ -62,9 +68,9 @@ setOf(BuildingQueueTask(19421)).asSequence().shuffled().forEach { TIMER.schedule
     * `isOnCoolDown()` - optional cool-down mechanism. For example, you could provide a time
       window where a given task should not execute and be in cool-down state.
 
-<hr>
-
 # Known issues and TODOs
+
+<hr>
 
 * [x] ~~Would be nice to add runtime configuration for tasks, so that you can update without~~
   recompiling the code.
@@ -75,5 +81,3 @@ setOf(BuildingQueueTask(19421)).asSequence().shuffled().forEach { TIMER.schedule
 * [x] ~~BuildingQueueTask for palisade/wall is not working. The travian-ui for palisade is not a
   clickable `<a>` tag, but rather a `<svg>` element.~~
 * [x] ~~BuildingQueueTask for a building that is not already placed is not supported.~~
-
-<hr>

@@ -9,7 +9,7 @@ object CredentialService {
         )
     }
 
-    private fun getEnvironmentVariable(name: String): String = System.getenv(name)
+    fun getEnvironmentVariable(name: String): String = System.getenv(name)
         ?: throw RuntimeException("$name is missing. Make sure you set $name environment variable")
 }
 

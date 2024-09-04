@@ -2,6 +2,7 @@ package lt.dr.travian.bot
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import lt.dr.travian.bot.auth.AuthService
+import lt.dr.travian.bot.auth.CredentialService.getEnvironmentVariable
 import lt.dr.travian.bot.task.ArmyQueueTask
 import lt.dr.travian.bot.task.BuildingQueueTask
 import lt.dr.travian.bot.task.FarmListSendTask
@@ -15,7 +16,7 @@ import java.time.Duration
 import java.util.*
 import kotlin.system.exitProcess
 
-const val TRAVIAN_SERVER = "https://ts20.x2.europe.travian.com"
+val TRAVIAN_SERVER = getEnvironmentVariable("TRAVIAN_SERVER")
 val TIMER = Timer()
 var DRIVER = buildChromeDrive()
 var FLUENT_WAIT = DRIVER.fluentWait()
@@ -35,6 +36,7 @@ fun main() {
         ArmyQueueTask(19421),
         BuildingQueueTask(21287),
         ArmyQueueTask(21287),
+        BuildingQueueTask(23311),
     ).asSequence().shuffled().forEach {
         TIMER.schedule(it, 1000L)
     }
