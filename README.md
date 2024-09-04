@@ -1,6 +1,6 @@
 # travian-bot
 
-<hr>
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=dradzys_travian-bot&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=dradzys_travian-bot) [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=dradzys_travian-bot&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=dradzys_travian-bot) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=dradzys_travian-bot&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=dradzys_travian-bot)
 
 * A selenium bot to automate `travian legends` tedious tasks:
     * building: `BuildingQueueTask.kt`
@@ -8,9 +8,8 @@
     * farm list raiding: `FarmListSendTask.kt`
     * raiding: `RaidTask.kt`
 
-# Getting started
 
-<hr>
+# Getting started
 
 ##### Prerequisites to running
 
@@ -40,14 +39,16 @@
 
 ##### Running:
 
-* Via executable:
-    * Build or Download jar:
+* Download latest [release](https://github.com/dradzys/travian-bot/releases) and run using
+  ``java -jar travian-bot-{version}.jar``
+* Run in Docker:
+    * TBD()
+* Build and run locally:
+    * Build:
         * unix based systems: `./gradlew clean build`
         * windows: `gradlew.bat clean build`
     * Run jar:
-        * `java -jar ./build/libs/travian-bot-1.0.0.jar`
-* Via Docker:
-    * TBD()
+        * `java -jar ./build/libs/travian-bot.jar`
 
 <hr>
 
@@ -69,8 +70,6 @@ setOf(BuildingQueueTask(19421)).asSequence().shuffled().forEach { TIMER.schedule
       window where a given task should not execute and be in cool-down state.
 
 # Known issues and TODOs
-
-<hr>
 
 * [x] ~~Would be nice to add runtime configuration for tasks, so that you can update without~~
   recompiling the code.

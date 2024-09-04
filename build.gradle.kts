@@ -2,10 +2,10 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.8.21"
+    id("org.sonarqube") version "4.4.1.3373"
 }
 
 group = "lt.dr"
-version = "1.0.0"
 java.sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
@@ -26,6 +26,14 @@ dependencies {
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 
     testImplementation(kotlin("test"))
+}
+
+sonar {
+    properties {
+        property("sonar.projectKey", "dradzys_travian-bot")
+        property("sonar.organization", "dradzys")
+        property("sonar.host.url", "https://sonarcloud.io")
+    }
 }
 
 tasks.test {
