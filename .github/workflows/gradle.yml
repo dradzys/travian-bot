@@ -52,14 +52,18 @@ jobs:
           name: build-artifact
           path: .
 
+      - name: Get Latest Tag
+        id: get_tag
+        run: echo "LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)" >> $GITHUB_ENV
+
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ env.LATEST_TAG }}
+          release_name: Release ${{ env.LATEST_TAG }}
           draft: false
           prerelease: false
 
