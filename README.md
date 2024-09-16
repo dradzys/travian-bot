@@ -66,14 +66,11 @@ setOf(BuildingQueueTask(19421)).asSequence().shuffled().forEach { TIMER.schedule
     * `isOnCoolDown()` - optional cool-down mechanism. For example, you could provide a time
       window where a given task should not execute and be in cool-down state.
 
-# Known issues and TODOs
+# TODOs:
 
-* [x] ~~Would be nice to add runtime configuration for tasks, so that you can update without~~
-  recompiling the code.
-* [ ] We need a lot more manual testing to ensure that the bot is working as expected.
-    * [ ] different tribes, different buildings, different troops.
-    * [ ] different bot detection preventions mechanisms(random click intervals, task execution
-      intervals, cool-downs)
-* [x] ~~BuildingQueueTask for palisade/wall is not working. The travian-ui for palisade is not a
-  clickable `<a>` tag, but rather a `<svg>` element.~~
-* [x] ~~BuildingQueueTask for a building that is not already placed is not supported.~~
+* CI generated artifact should contain tag version
+* Add CI steps for docker image build and push
+* Sonarqube code smell fixes
+* Automatic village scan, to automatically register new village for tasks, instead of manual work.
+* Alerting to some client to notify about attacks
+* Build/Army queue order is lost during serialization. Add priority or some other mechanism.
