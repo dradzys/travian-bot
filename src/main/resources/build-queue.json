@@ -3,24 +3,7 @@
     "villageId": 19421,
     "orderQueue": [
       {"type": "BUILDING", "name": "Main Building", "wantedLevel": 20},
-      {"type": "RESOURCE_FIELD", "id": 1, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 2, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 3, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 4, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 5, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 6, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 7, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 8, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 9, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 10, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 11, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 12, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 13, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 14, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 15, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 16, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 17, "wantedLevel": 10},
-      {"type": "RESOURCE_FIELD", "id": 18, "wantedLevel": 10}
+      {"type": "RESOURCE_FIELD", "id": 1, "wantedLevel": 10}
     ]
   },
   {
@@ -28,24 +11,7 @@
     "orderQueue": [
       {"type": "BUILDING", "name": "Palisade", "wantedLevel": 12},
       {"type": "BUILDING", "name": "Main Building", "wantedLevel": 16},
-      {"type": "RESOURCE_FIELD", "id": 1, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 2, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 3, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 4, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 5, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 6, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 7, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 8, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 9, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 10, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 11, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 12, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 13, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 14, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 15, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 16, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 17, "wantedLevel": 8},
-      {"type": "RESOURCE_FIELD", "id": 18, "wantedLevel": 8}
+      {"type": "RESOURCE_FIELD", "id": 1, "wantedLevel": 8}
     ]
   }
 ]

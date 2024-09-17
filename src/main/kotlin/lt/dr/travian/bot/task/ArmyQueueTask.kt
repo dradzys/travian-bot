@@ -40,13 +40,13 @@ class ArmyQueueTask(private val villageId: Int) : RuntimeTask<ArmyQueueRequest>(
         private val LOGGER = LoggerFactory.getLogger(this::class.java)
         private val RESCHEDULE_RANGE_MILLIS = (400_000L..450_000L)
         private val RANDOM_ADDITIONAL_RANGE_MILLIS = (6_666L..8_888L)
-        private const val INSTRUCTION_FILE_PATH = "src/main/resources/army-queue.json"
+        private const val INSTRUCTION_FILE_NAME = "army-queue.json"
     }
 
     override fun isOnCoolDown() = LocalDateTime.now().hour in 3 until 4
 
     override fun execute() {
-        fetchOrderGroup(villageId, INSTRUCTION_FILE_PATH, ArmyQueueRequest::class.java)?.let {
+        fetchOrderGroup(villageId, INSTRUCTION_FILE_NAME, ArmyQueueRequest::class.java)?.let {
             processArmyOrderGroup(it)
         }
     }

@@ -1,11 +1,11 @@
 package lt.dr.travian.bot
 
+import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import lt.dr.travian.bot.auth.AuthService
 import lt.dr.travian.bot.auth.CredentialService.getEnvironmentVariable
-import lt.dr.travian.bot.task.ArmyQueueTask
 import lt.dr.travian.bot.task.BuildingQueueTask
-import lt.dr.travian.bot.task.FarmListSendTask
+import lt.dr.travian.bot.utils.ExternalInstructionUtils
 import org.openqa.selenium.ElementNotInteractableException
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
@@ -20,10 +20,11 @@ val TRAVIAN_SERVER = getEnvironmentVariable("TRAVIAN_SERVER")
 val TIMER = Timer()
 var DRIVER = buildChromeDrive()
 var FLUENT_WAIT = DRIVER.fluentWait()
-val objectMapper = jacksonObjectMapper()
+val objectMapper = jacksonObjectMapper().configure(JsonParser.Feature.AUTO_CLOSE_SOURCE, true)
 private val LOGGER = LoggerFactory.getLogger("TravianBot")
 
 fun main() {
+    ExternalInstructionUtils.validateExternalInstructionDir()
     if (AuthService.getInstance().isUnAuthenticated()) {
         LOGGER.error("Authentication Failure. Make sure you provide correct credentials and travian server.")
         DRIVER.quit()
@@ -31,12 +32,7 @@ fun main() {
     }
 
     setOf(
-        FarmListSendTask(),
-        BuildingQueueTask(19421),
-        ArmyQueueTask(19421),
-        BuildingQueueTask(21287),
-        ArmyQueueTask(21287),
-        BuildingQueueTask(23311),
+        BuildingQueueTask(27221)
     ).asSequence().shuffled().forEach {
         TIMER.schedule(it, 1000L)
     }

@@ -71,13 +71,13 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
         private val RESCHEDULE_RANGE_MILLIS = (300_000L..400_000L)
         private val RANDOM_ADDITIONAL_RANGE_MILLIS = (1111L..5555L)
         private val buildingCategoryIds = (1..3)
-        private const val BUILD_QUEUE_FILE_PATH = "src/main/resources/build-queue.json"
+        private const val BUILD_QUEUE_FILE_NAME = "build-queue.json"
     }
 
     override fun isOnCoolDown() = LocalDateTime.now().hour in 3 until 4
 
     override fun execute() {
-        fetchOrderGroup(this.villageId, BUILD_QUEUE_FILE_PATH, BuildQueueRequest::class.java)?.let { processBuildOrderGroup(it) }
+        fetchOrderGroup(this.villageId, BUILD_QUEUE_FILE_NAME, BuildQueueRequest::class.java)?.let { processBuildOrderGroup(it) }
     }
 
     override fun scheduleDelay(): Long = getQueueTimeLeftInMillis() ?: getRandomDelay()

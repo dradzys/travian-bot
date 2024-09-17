@@ -58,13 +58,13 @@ class RaidTask(private val villageId: Int) : RuntimeTask<RaidUnit>() {
         private val LOGGER = LoggerFactory.getLogger(this::class.java)
         private val RESCHEDULE_RANGE_MILLIS = (520_000L..720_000L)
         private val RANDOM_ADDITIONAL_RANGE_MILLIS = (1111L..3333L)
-        private const val RAID_QUEUE_FILE_PATH = "src/main/resources/raid-queue.json"
+        private const val RAID_QUEUE_FILE_NAME = "raid-queue.json"
     }
 
     override fun isOnCoolDown() = false
 
     override fun execute() {
-        fetchOrderGroup(this.villageId, RAID_QUEUE_FILE_PATH, RaidUnit::class.java)?.let { processRaidUnitGroup(it) }
+        fetchOrderGroup(this.villageId, RAID_QUEUE_FILE_NAME, RaidUnit::class.java)?.let { processRaidUnitGroup(it) }
     }
 
     override fun scheduleDelay() =

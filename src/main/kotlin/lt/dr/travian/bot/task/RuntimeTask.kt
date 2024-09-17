@@ -1,7 +1,8 @@
 package lt.dr.travian.bot.task
 
-import lt.dr.travian.bot.CheckSumUtils
 import lt.dr.travian.bot.objectMapper
+import lt.dr.travian.bot.utils.CheckSumUtils
+import lt.dr.travian.bot.utils.ExternalInstructionUtils.loadExternalInstruction
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.IOException
@@ -17,38 +18,44 @@ abstract class RuntimeTask<T> : RescheduledTimerTask() {
 
     protected fun fetchOrderGroup(
         villageId: Int,
-        instructionPath: String,
+        instructionFileName: String,
         Clazz: Class<T>
     ): OrderGroup<T>? {
         return kotlin.runCatching {
-            val instructionFile = File(instructionPath)
-            val checkSum = CheckSumUtils.calculateCheckSum(instructionFile)
+            val file = loadExternalInstruction(instructionFileName) ?: return null
+            if (!file.exists()) return null
+            val checkSum = CheckSumUtils.calculateCheckSum(file)
             if (isQueueUnchanged(checkSum)) return this.orderGroup
 
-            LOGGER.info("Fetching $instructionPath")
-            val type = objectMapper.typeFactory.constructCollectionType(
-                List::class.java,
-                objectMapper.typeFactory.constructParametricType(
-                    OrderGroup::class.java,
-                    Clazz
-                )
-            )
-            val orderGroups: List<OrderGroup<T>> = objectMapper.readValue(instructionFile, type)
-            val orderGroup = orderGroups.firstOrNull { it.villageId == villageId }
+            LOGGER.info("Fetching $instructionFileName")
+            val orderGroup = getOrderGroups(file, Clazz).firstOrNull {
+                it.villageId == villageId
+            }
             this.orderGroup = orderGroup
             this.lastQueueFileChecksum = checkSum
             orderGroup
         }.onFailure {
             if (it.cause is IOException) {
-                LOGGER.error("Failed reading $instructionPath", it)
+                LOGGER.error("Failed reading $instructionFileName", it)
             } else {
-                LOGGER.error("Failed parsing $instructionPath", it)
+                LOGGER.error("Failed parsing $instructionFileName", it)
             }
         }.getOrNull()
     }
 
     private fun isQueueUnchanged(checkSum: String?): Boolean {
         return this.orderGroup != null && this.lastQueueFileChecksum == checkSum
+    }
+
+    private fun getOrderGroups(file: File, clazz: Class<T>): List<OrderGroup<T>> {
+        val type = objectMapper.typeFactory.constructCollectionType(
+            List::class.java,
+            objectMapper.typeFactory.constructParametricType(
+                OrderGroup::class.java,
+                clazz
+            )
+        )
+        return objectMapper.readValue(file, type)
     }
 
     companion object {
