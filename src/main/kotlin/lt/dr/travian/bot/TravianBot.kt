@@ -1,10 +1,11 @@
 package lt.dr.travian.bot
 
-import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.core.JsonParser.Feature.AUTO_CLOSE_SOURCE
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import lt.dr.travian.bot.auth.AuthService
 import lt.dr.travian.bot.auth.CredentialService.getEnvironmentVariable
-import lt.dr.travian.bot.task.BuildingQueueTask
+import lt.dr.travian.bot.task.FarmListSendTask
+import lt.dr.travian.bot.task.SchedulerTask
 import lt.dr.travian.bot.utils.ExternalInstructionUtils
 import org.openqa.selenium.ElementNotInteractableException
 import org.openqa.selenium.chrome.ChromeDriver
@@ -17,10 +18,12 @@ import java.util.*
 import kotlin.system.exitProcess
 
 val TRAVIAN_SERVER = getEnvironmentVariable("TRAVIAN_SERVER")
-val TIMER = Timer()
 var DRIVER = buildChromeDrive()
 var FLUENT_WAIT = DRIVER.fluentWait()
-val objectMapper = jacksonObjectMapper().configure(JsonParser.Feature.AUTO_CLOSE_SOURCE, true)
+val TIMER = Timer()
+val objectMapper = jacksonObjectMapper().configure(AUTO_CLOSE_SOURCE, true)
+var TRIBE = Tribe.ROMANS
+var VILLAGE_LIST = emptySet<Int>()
 private val LOGGER = LoggerFactory.getLogger("TravianBot")
 
 fun main() {
@@ -31,11 +34,8 @@ fun main() {
         exitProcess(-1)
     }
 
-    setOf(
-        BuildingQueueTask(27221)
-    ).asSequence().shuffled().forEach {
-        TIMER.schedule(it, 1000L)
-    }
+    TIMER.schedule(SchedulerTask(), 1000L)
+    TIMER.schedule(FarmListSendTask(), 1000L)
     Thread.currentThread().join()
 }
 

@@ -19,7 +19,7 @@ abstract class RuntimeTask<T> : RescheduledTimerTask() {
     protected fun fetchOrderGroup(
         villageId: Int,
         instructionFileName: String,
-        Clazz: Class<T>
+        clazz: Class<T>
     ): OrderGroup<T>? {
         return kotlin.runCatching {
             val file = loadExternalInstruction(instructionFileName) ?: return null
@@ -28,7 +28,7 @@ abstract class RuntimeTask<T> : RescheduledTimerTask() {
             if (isQueueUnchanged(checkSum)) return this.orderGroup
 
             LOGGER.info("Fetching $instructionFileName")
-            val orderGroup = getOrderGroups(file, Clazz).firstOrNull {
+            val orderGroup = getOrderGroups(file, clazz).firstOrNull {
                 it.villageId == villageId
             }
             this.orderGroup = orderGroup

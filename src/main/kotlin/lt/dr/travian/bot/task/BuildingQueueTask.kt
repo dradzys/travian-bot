@@ -6,8 +6,12 @@ import com.fasterxml.jackson.annotation.JsonTypeName
 import lt.dr.travian.bot.DRIVER
 import lt.dr.travian.bot.FLUENT_WAIT
 import lt.dr.travian.bot.TRAVIAN_SERVER
+import lt.dr.travian.bot.TRIBE
+import lt.dr.travian.bot.Tribe
 import lt.dr.travian.bot.task.BuildQueueRequest.BuildType.BUILDING
 import lt.dr.travian.bot.task.BuildQueueRequest.BuildType.RESOURCE_FIELD
+import lt.dr.travian.bot.task.BuildQueueRequest.BuildingRequest
+import lt.dr.travian.bot.task.BuildQueueRequest.ResourceFieldRequest
 import org.openqa.selenium.By
 import org.openqa.selenium.By.ByClassName
 import org.openqa.selenium.By.ByCssSelector
@@ -25,8 +29,8 @@ data class BuildingSlot(
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes(
-    JsonSubTypes.Type(value = BuildQueueRequest.BuildingRequest::class, name = "BUILDING"),
-    JsonSubTypes.Type(value = BuildQueueRequest.ResourceFieldRequest::class, name = "RESOURCE_FIELD")
+    JsonSubTypes.Type(value = BuildingRequest::class, name = "BUILDING"),
+    JsonSubTypes.Type(value = ResourceFieldRequest::class, name = "RESOURCE_FIELD")
 )
 sealed class BuildQueueRequest(
     open val type: BuildType,
@@ -77,7 +81,11 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
     override fun isOnCoolDown() = LocalDateTime.now().hour in 3 until 4
 
     override fun execute() {
-        fetchOrderGroup(this.villageId, BUILD_QUEUE_FILE_NAME, BuildQueueRequest::class.java)?.let { processBuildOrderGroup(it) }
+        fetchOrderGroup(
+            villageId = this.villageId,
+            instructionFileName = BUILD_QUEUE_FILE_NAME,
+            clazz = BuildQueueRequest::class.java
+        )?.let { processBuildOrderGroup(it) }
     }
 
     override fun scheduleDelay(): Long = getQueueTimeLeftInMillis() ?: getRandomDelay()
@@ -90,11 +98,17 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
     }
 
     private fun getQueueTimeLeftInMillis(): Long? {
+        DRIVER.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
+        return if (TRIBE == Tribe.ROMANS) {
+            getQueueTimeLeft("//div[@class=\"buildingList\"]/ul/li[1]")
+        } else {
+            getQueueTimeLeft("//div[@class=\"buildingList\"]/ul/li[last()]")
+        }
+    }
+
+    private fun getQueueTimeLeft(xpath: String): Long? {
         return kotlin.runCatching {
-            DRIVER.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
-            DRIVER.findElements(
-                ByXPath("//div[@class=\"buildingList\"]/ul/li[last()]")
-            ).firstOrNull()?.let { buildQueueLastItem ->
+            DRIVER.findElements(ByXPath(xpath)).firstOrNull()?.let { buildQueueLastItem ->
                 buildQueueLastItem.findElement(ByClassName("timer"))
                     ?.getAttribute("value")
                     ?.toLongOrNull()
@@ -113,12 +127,12 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
                     }
                     LOGGER.info("Processing building request: $buildQueueRequest, in ${buildOrderGroup.villageId}")
                     when (buildQueueRequest) {
-                        is BuildQueueRequest.BuildingRequest -> upgradeBuilding(
+                        is BuildingRequest -> upgradeBuilding(
                             buildQueueRequest,
                             buildOrderGroup
                         )
 
-                        is BuildQueueRequest.ResourceFieldRequest -> upgradeResourceField(
+                        is ResourceFieldRequest -> upgradeResourceField(
                             buildQueueRequest,
                             buildOrderGroup
                         )
@@ -129,16 +143,27 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
 
     private fun isQueueRunning(villageId: Int): Boolean {
         DRIVER.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
-        return DRIVER.findElements(
-            ByXPath("//div[@class=\"buildingList\"]")
-        ).isNotEmpty()
+        val buildList = DRIVER.findElements(
+            ByXPath("//div[@class=\"buildingList\"]/ul/li")
+        )
+        // TODO: this should also take into consideration presence of plus account
+        // this is importance since romans can benefit from always running full queue(3 buildings)
+        return if (TRIBE == Tribe.ROMANS) {
+            // romans can build a building and a resource field simultaneously
+            buildList.size >= 2
+        } else {
+            buildList.isNotEmpty()
+        }
+
     }
 
     private fun upgradeBuilding(
-        buildingQueueRequest: BuildQueueRequest.BuildingRequest,
+        buildingQueueRequest: BuildingRequest,
         buildOrderGroup: OrderGroup<BuildQueueRequest>
     ) {
-        DRIVER.get("$TRAVIAN_SERVER/dorf2.php?newdid=${buildOrderGroup.villageId}")
+        if (DRIVER.currentUrl != "$TRAVIAN_SERVER/dorf2.php?newdid=${buildOrderGroup.villageId}") {
+            DRIVER.get("$TRAVIAN_SERVER/dorf2.php?newdid=${buildOrderGroup.villageId}")
+        }
         val requestedBuildings = DRIVER.findElements(
             ByXPath("//div[@data-name=\"${buildingQueueRequest.name}\"]")
         )
@@ -190,7 +215,7 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
 
     private fun wasQueuedInGivenCategory(
         categoryId: Int,
-        buildingQueueRequest: BuildQueueRequest.BuildingRequest
+        buildingQueueRequest: BuildingRequest
     ): Boolean {
         var hasQueuedBuilding = false
         if (categoryId != 1) {
@@ -213,7 +238,7 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
     private fun List<WebElement>.isBuildingNotYetPlaced() = this.isEmpty()
 
     private fun upgradeResourceField(
-        resourceFieldQueueRequest: BuildQueueRequest.ResourceFieldRequest,
+        resourceFieldQueueRequest: ResourceFieldRequest,
         buildOrderGroup: OrderGroup<BuildQueueRequest>
     ) {
         val resourceField = getResourceFieldById(
@@ -232,7 +257,9 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
     }
 
     private fun getResourceFields(villageId: Int): List<BuildingSlot> {
-        DRIVER.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
+        if (DRIVER.currentUrl != "$TRAVIAN_SERVER/dorf1.php?newdid=$villageId") {
+            DRIVER.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
+        }
         val resourceFieldLinks = DRIVER.findElements(
             ByXPath("//div[@id=\"resourceFieldContainer\"]/a")
         )

@@ -69,6 +69,10 @@ abstract class RescheduledTimerTask(
         LOGGER.info("${this.javaClass.simpleName} scheduled at delay: $delay")
     }
 
+    /**
+     * TODO: bug in this method, opens two browsers and selenium just stays with no actions.
+     * to reproduce launch bot and then switch screen devices, from dual monitor to just laptop
+     */
     private fun isBrowserClosed(): Boolean {
         return kotlin.runCatching {
             DRIVER.windowHandles.isNullOrEmpty()
