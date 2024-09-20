@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.annotation.JsonTypeName
 import lt.dr.travian.bot.DRIVER
 import lt.dr.travian.bot.FLUENT_WAIT
+import lt.dr.travian.bot.IS_PLUS_ACCOUNT
 import lt.dr.travian.bot.TRAVIAN_SERVER
 import lt.dr.travian.bot.TRIBE
 import lt.dr.travian.bot.Tribe
@@ -122,7 +123,7 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
             buildOrderGroup.orderQueue
                 .filter { !it.wantedLevelReached }
                 .forEach { buildQueueRequest ->
-                    if (isQueueRunning(buildOrderGroup.villageId)) {
+                    if (isBuildingQueueFull(buildOrderGroup.villageId)) {
                         return@group
                     }
                     LOGGER.info("Processing building request: $buildQueueRequest, in ${buildOrderGroup.villageId}")
@@ -141,20 +142,28 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
         }
     }
 
-    private fun isQueueRunning(villageId: Int): Boolean {
+    private fun isBuildingQueueFull(villageId: Int): Boolean {
         DRIVER.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
         val buildList = DRIVER.findElements(
             ByXPath("//div[@class=\"buildingList\"]/ul/li")
         )
-        // TODO: this should also take into consideration presence of plus account
-        // this is importance since romans can benefit from always running full queue(3 buildings)
-        return if (TRIBE == Tribe.ROMANS) {
-            // romans can build a building and a resource field simultaneously
-            buildList.size >= 2
-        } else {
-            buildList.isNotEmpty()
-        }
+        return when {
+            TRIBE == Tribe.ROMANS && IS_PLUS_ACCOUNT -> {
+                buildList.size == 3
+            }
 
+            IS_PLUS_ACCOUNT -> {
+                buildList.size == 2
+            }
+
+            TRIBE == Tribe.ROMANS && !IS_PLUS_ACCOUNT -> {
+                buildList.size == 2
+            }
+
+            else -> {
+                buildList.isNotEmpty()
+            }
+        }
     }
 
     private fun upgradeBuilding(

@@ -31,7 +31,7 @@
 * Build and run locally:
     * Build:
         * unix based systems: `./gradlew clean build`
-        * windows: `gradlew.bat clean build`
+        * windows: `.\gradlew.bat clean build`
     * Run jar:
         * `java -jar ./build/libs/travian-bot.jar`
 

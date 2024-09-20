@@ -25,7 +25,6 @@ class SchedulerTask : RescheduledTimerTask() {
 
     override fun execute() {
         val villageIds = getVillageIds()
-        // TODO: read tribe value and assign value to TRIBE var
         LOGGER.info("VillageList: ${villageIds.joinToString()}")
         if (VILLAGE_LIST != villageIds) {
             scheduleTasks(villageIds)
