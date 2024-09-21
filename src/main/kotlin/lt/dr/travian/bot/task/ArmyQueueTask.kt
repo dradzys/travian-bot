@@ -38,7 +38,7 @@ class ArmyQueueTask(private val villageId: Int) : RuntimeTask<ArmyQueueRequest>(
 
     companion object {
         private val LOGGER = LoggerFactory.getLogger(this::class.java)
-        private val RESCHEDULE_RANGE_MILLIS = (400_000L..450_000L)
+        private val RESCHEDULE_RANGE_MILLIS = (1500_000L..1550_000L) // ~25 minutes
         private val RANDOM_ADDITIONAL_RANGE_MILLIS = (6_666L..8_888L)
         private const val INSTRUCTION_FILE_NAME = "army-queue.json"
     }

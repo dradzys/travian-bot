@@ -1,6 +1,7 @@
 package lt.dr.travian.bot
 
 import com.fasterxml.jackson.core.JsonParser.Feature.AUTO_CLOSE_SOURCE
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import lt.dr.travian.bot.auth.AuthService
 import lt.dr.travian.bot.auth.CredentialService.getEnvironmentVariable
@@ -22,8 +23,8 @@ val TRAVIAN_SERVER = getEnvironmentVariable("TRAVIAN_SERVER")
 var DRIVER = buildChromeDrive()
 var FLUENT_WAIT = DRIVER.fluentWait()
 val TIMER = Timer()
-val objectMapper = jacksonObjectMapper().configure(AUTO_CLOSE_SOURCE, true)
-var TRIBE = Tribe.ROMANS
+val objectMapper: ObjectMapper = jacksonObjectMapper().configure(AUTO_CLOSE_SOURCE, true)
+var TRIBE: Tribe? = null
 var VILLAGE_LIST = emptySet<Int>()
 var IS_PLUS_ACCOUNT = false
 private val LOGGER = LoggerFactory.getLogger("TravianBot")

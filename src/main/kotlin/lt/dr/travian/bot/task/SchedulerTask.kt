@@ -33,6 +33,7 @@ class SchedulerTask : RescheduledTimerTask() {
         }
     }
 
+    // TODO: Q/A with multiple villages
     private fun getVillageIds(): Set<Int> {
         if (DRIVER.currentUrl != "$TRAVIAN_SERVER/dorf1.php") {
             DRIVER.get("$TRAVIAN_SERVER/dorf1.php")
@@ -41,7 +42,7 @@ class SchedulerTask : RescheduledTimerTask() {
             DRIVER.findElements(ByXPath("//div[@class=\"villageList\"]")).isNotEmpty()
         }
         return DRIVER.findElements(
-            ByXPath("//div[@class=\"villageList\"]/div/div/span")
+            ByXPath("//div[@class=\"villageList\"]/div/div")
         ).mapNotNull { element ->
             val villageIdStr = element.getAttribute("data-did")
             if (!villageIdStr.isNullOrBlank()) {

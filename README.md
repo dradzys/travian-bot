@@ -48,6 +48,9 @@
 
 # TODO's:
 
+* buildQueue priority, to have deterministic order.
+* proxmox setup for beelink mini-pc. have an ubuntu virtual machine for travian-bot, and setup some
+  remote connection way to edit queue files.
 * Add CI steps for docker image build and push
 * Sonarqube code smell fixesß
 * Alerting to some client to notify about attacks

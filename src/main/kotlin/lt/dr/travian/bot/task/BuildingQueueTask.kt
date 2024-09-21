@@ -19,7 +19,6 @@ import org.openqa.selenium.By.ByCssSelector
 import org.openqa.selenium.By.ByXPath
 import org.openqa.selenium.WebElement
 import org.slf4j.LoggerFactory
-import java.time.LocalDateTime
 
 data class BuildingSlot(
     val id: Int?,
@@ -79,7 +78,7 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
         private const val BUILD_QUEUE_FILE_NAME = "build-queue.json"
     }
 
-    override fun isOnCoolDown() = LocalDateTime.now().hour in 3 until 4
+    override fun isOnCoolDown() = false
 
     override fun execute() {
         fetchOrderGroup(

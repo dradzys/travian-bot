@@ -4,6 +4,9 @@ import lt.dr.travian.bot.DRIVER
 import lt.dr.travian.bot.FLUENT_WAIT
 import lt.dr.travian.bot.IS_PLUS_ACCOUNT
 import lt.dr.travian.bot.TRAVIAN_SERVER
+import lt.dr.travian.bot.TRIBE
+import lt.dr.travian.bot.Tribe
+import lt.dr.travian.bot.toTribe
 import org.openqa.selenium.By.ByXPath
 import org.slf4j.LoggerFactory
 
@@ -18,15 +21,25 @@ class AccountInfoReadTask : RescheduledTimerTask() {
     override fun isOnCoolDown(): Boolean = false
 
     override fun execute() {
-        val plusAccountEndsInMillis = getPlusAccountEndTimeMillis()
-        IS_PLUS_ACCOUNT = plusAccountEndsInMillis != null && plusAccountEndsInMillis > 0
-        // TODO: read and assign tribe value
-        LOGGER.info("IS_PLUS_ACCOUNT: $IS_PLUS_ACCOUNT")
+        assignPlusAccount()
+        if (TRIBE == null) {
+            assignTribe()
+        }
     }
 
     override fun scheduleDelay(): Long {
         return getPlusAccountEndTimeMillis()
             ?: (RESCHEDULE_RANGE_MILLIS.random() + RANDOM_ADDITIONAL_RANGE_MILLIS.random())
+    }
+
+    override fun clone(): RescheduledTimerTask {
+        return AccountInfoReadTask()
+    }
+
+    private fun assignPlusAccount() {
+        val plusAccountEndsInMillis = getPlusAccountEndTimeMillis()
+        IS_PLUS_ACCOUNT = plusAccountEndsInMillis != null && plusAccountEndsInMillis > 0
+        LOGGER.info("IS_PLUS_ACCOUNT: $IS_PLUS_ACCOUNT")
     }
 
     private fun getPlusAccountEndTimeMillis(): Long? {
@@ -43,7 +56,16 @@ class AccountInfoReadTask : RescheduledTimerTask() {
             }
     }
 
-    override fun clone(): RescheduledTimerTask {
-        return AccountInfoReadTask()
+    private fun assignTribe() {
+        DRIVER.get("$TRAVIAN_SERVER/dorf2.php")
+        val tribe = Tribe.values().map { it.id }.firstOrNull { tribeId ->
+            DRIVER.findElements(ByXPath("//*[@class=\"building g10 $tribeId\"]")).isNotEmpty()
+        }?.toTribe()
+        if (tribe == null) {
+            LOGGER.warn("Cannot resolve Tribe value!")
+        } else {
+            TRIBE = tribe
+            LOGGER.info("Tribe: $TRIBE")
+        }
     }
 }
