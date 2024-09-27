@@ -46,8 +46,12 @@ class ArmyQueueTask(private val villageId: Int) : RuntimeTask<ArmyQueueRequest>(
     override fun isOnCoolDown() = LocalDateTime.now().hour in 3 until 4
 
     override fun execute() {
-        fetchOrderGroup(villageId, INSTRUCTION_FILE_NAME, ArmyQueueRequest::class.java)?.let {
-            processArmyOrderGroup(it)
+        fetchOrderGroup(
+            villageId = villageId,
+            instructionFileName = INSTRUCTION_FILE_NAME,
+            clazz = ArmyQueueRequest::class.java
+        )?.orderQueue?.groupBy { it.type }?.let {
+            processArmyQueue(villageId, it)
         }
     }
 
@@ -60,34 +64,47 @@ class ArmyQueueTask(private val villageId: Int) : RuntimeTask<ArmyQueueRequest>(
         return armyQueueTask
     }
 
-    private fun processArmyOrderGroup(armyOrderGroup: OrderGroup<ArmyQueueRequest>) {
-        armyOrderGroup.orderQueue.forEach { armyQueueRequest ->
-            DRIVER.get("$TRAVIAN_SERVER/dorf2.php?newdid=${armyOrderGroup.villageId}")
+    private fun processArmyQueue(
+        villageId: Int,
+        armyRequestByType: Map<ArmyQueueRequest.ArmyBuildingType, List<ArmyQueueRequest>>
+    ) {
+        armyRequestByType.forEach { (buildingType, requests) ->
+            LOGGER.info("Processing ArmyQueue requests for $buildingType")
+            DRIVER.get("$TRAVIAN_SERVER/dorf2.php?newdid=${villageId}")
             val armyBuildingSlot = DRIVER.findElements(
-                ByXPath("//*[@data-name=\"${armyQueueRequest.type.buildingName}\"]")
+                ByXPath("//*[@data-name=\"${buildingType.buildingName}\"]")
             ).firstOrNull()
             val armyBuildingLink = armyBuildingSlot?.findElements(
                 ByCssSelector("a")
             )?.firstOrNull()
             armyBuildingLink?.click() ?: return
-            queueArmy(armyQueueRequest)
+            inputArmyAmounts(requests)
+            if (hasQueuedTroops()) {
+                requests.forEach { LOGGER.info("$it queued") }
+            }
         }
     }
 
-    private fun queueArmy(armyQueueRequest: ArmyQueueRequest) {
-        val troopInputElement = DRIVER.findElement(
-            ByXPath("//input[@name=\"${armyQueueRequest.troopId}\"]")
-        )
-        FLUENT_WAIT.until { troopInputElement.isDisplayed }
-        if (troopInputElement.isEnabled) {
-            troopInputElement.clear()
-            troopInputElement.sendKeys(armyQueueRequest.amount.toString())
-            val trainButton = DRIVER.findElement(ByXPath("//button[@value=\"ok\"]"))
-            trainButton.click()
-            LOGGER.info("$armyQueueRequest queued")
-        } else {
-            LOGGER.info("Not enough resources to queue $armyQueueRequest")
+    private fun inputArmyAmounts(armyQueueRequest: List<ArmyQueueRequest>) {
+        armyQueueRequest.forEach {
+            val troopInputElement = DRIVER.findElement(
+                ByXPath("//input[@name=\"${it.troopId}\"]")
+            )
+            FLUENT_WAIT.until { troopInputElement.isDisplayed }
+            if (troopInputElement.isEnabled) {
+                troopInputElement.clear()
+                troopInputElement.sendKeys(it.amount.toString())
+            }
         }
+    }
+
+    private fun hasQueuedTroops(): Boolean {
+        val trainArmyBtn = DRIVER.findElements(ByXPath("//button[@value=\"ok\"]"))
+            .firstOrNull()
+        return if (trainArmyBtn != null && trainArmyBtn.isDisplayed) {
+            trainArmyBtn.click()
+            true
+        } else false
     }
 
     private fun getRandomDelay(): Long {
