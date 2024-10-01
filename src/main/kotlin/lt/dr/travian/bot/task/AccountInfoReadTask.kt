@@ -43,7 +43,7 @@ class AccountInfoReadTask : RescheduledTimerTask() {
     }
 
     private fun getPlusAccountEndTimeMillis(): Long? {
-        DRIVER.get("$TRAVIAN_SERVER/dorf1.php")
+        DRIVER["$TRAVIAN_SERVER/dorf1.php"]
         DRIVER.findElements(ByXPath("//a[@class=\"shop\"]")).firstOrNull()?.click()
         FLUENT_WAIT.until {
             DRIVER.findElements(ByXPath("//div[@class=\"paymentImage\"]")).isNotEmpty()
@@ -57,7 +57,7 @@ class AccountInfoReadTask : RescheduledTimerTask() {
     }
 
     private fun assignTribe() {
-        DRIVER.get("$TRAVIAN_SERVER/dorf2.php")
+        DRIVER["$TRAVIAN_SERVER/dorf2.php"]
         val tribe = Tribe.values().map { it.id }.firstOrNull { tribeId ->
             DRIVER.findElements(ByXPath("//*[@class=\"building g10 $tribeId\"]")).isNotEmpty()
         }?.toTribe()

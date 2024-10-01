@@ -13,17 +13,17 @@ repositories {
 }
 
 dependencies {
-    implementation("org.seleniumhq.selenium:selenium-java:4.18.1")
+    implementation(libs.selenium.java)
 
     // logging
-    implementation("org.slf4j:slf4j-api:2.0.12")
-    implementation("ch.qos.logback:logback-classic:1.4.14")
-    implementation("ch.qos.logback:logback-core:1.3.12")
+    implementation(libs.slf4j.api)
+    implementation(libs.logback.classic)
+    implementation(libs.logback.core)
 
     // jackson
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.16.1")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+    implementation(libs.jackson.databind)
+    implementation(libs.jackson.kotlin)
+    implementation(libs.jackson.jsr310)
 
     testImplementation(kotlin("test"))
 }

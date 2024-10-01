@@ -20,7 +20,7 @@ class FarmListSendTask : RescheduledTimerTask() {
     override fun isOnCoolDown() = false
 
     override fun execute() {
-        DRIVER.get("$TRAVIAN_SERVER/build.php?id=39&gid=16&tt=99")
+        DRIVER["$TRAVIAN_SERVER/build.php?id=39&gid=16&tt=99"]
         val startFarmListAllBtn =
             DRIVER.findElements(ByXPath("//*[@id=\"stickyWrapper\"]/button"))
                 .firstOrNull { it.getAttribute("class").contains("startAllFarmLists") }

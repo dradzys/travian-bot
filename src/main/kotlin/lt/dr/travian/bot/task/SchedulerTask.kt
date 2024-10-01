@@ -33,10 +33,9 @@ class SchedulerTask : RescheduledTimerTask() {
         }
     }
 
-    // TODO: Q/A with multiple villages
     private fun getVillageIds(): Set<Int> {
         if (DRIVER.currentUrl != "$TRAVIAN_SERVER/dorf1.php") {
-            DRIVER.get("$TRAVIAN_SERVER/dorf1.php")
+            DRIVER["$TRAVIAN_SERVER/dorf1.php"]
         }
         FLUENT_WAIT.until {
             DRIVER.findElements(ByXPath("//div[@class=\"villageList\"]")).isNotEmpty()

@@ -98,7 +98,7 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
     }
 
     private fun getQueueTimeLeftInMillis(): Long? {
-        DRIVER.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
+        DRIVER["$TRAVIAN_SERVER/dorf1.php?newdid=$villageId"]
         return if (TRIBE == Tribe.ROMANS) {
             getQueueTimeLeft("//div[@class=\"buildingList\"]/ul/li[1]")
         } else {
@@ -142,7 +142,7 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
     }
 
     private fun isBuildingQueueFull(villageId: Int): Boolean {
-        DRIVER.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
+        DRIVER["$TRAVIAN_SERVER/dorf1.php?newdid=$villageId"]
         val buildList = DRIVER.findElements(
             ByXPath("//div[@class=\"buildingList\"]/ul/li")
         )
@@ -170,7 +170,7 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
         buildOrderGroup: OrderGroup<BuildQueueRequest>
     ) {
         if (DRIVER.currentUrl != "$TRAVIAN_SERVER/dorf2.php?newdid=${buildOrderGroup.villageId}") {
-            DRIVER.get("$TRAVIAN_SERVER/dorf2.php?newdid=${buildOrderGroup.villageId}")
+            DRIVER["$TRAVIAN_SERVER/dorf2.php?newdid=${buildOrderGroup.villageId}"]
         }
         val requestedBuildings = DRIVER.findElements(
             ByXPath("//div[@data-name=\"${buildingQueueRequest.name}\"]")
@@ -210,7 +210,7 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
                             // city wall is special case, it has no href attribute
                             // going directly to city wall upgrade page
                             // its always with id 40 on all tribes
-                            DRIVER.get("$TRAVIAN_SERVER/build.php?newdid=${buildOrderGroup.villageId}&id=40")
+                            DRIVER["$TRAVIAN_SERVER/build.php?newdid=${buildOrderGroup.villageId}&id=40"]
                         } else {
                             link.click()
                         }
@@ -228,7 +228,7 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
         var hasQueuedBuilding = false
         if (categoryId != 1) {
             // category 1 is open by default, once you click on empty build field
-            DRIVER.get(DRIVER.currentUrl + "&category=$categoryId")
+            DRIVER[DRIVER.currentUrl + "&category=$categoryId"]
         }
         DRIVER.findElements(
             ByXPath("//h2[text()=\"${buildingQueueRequest.name}\"]/following-sibling::div[2]/div[@class='contractLink']/button")
@@ -254,7 +254,7 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
             buildOrderGroup.villageId,
         )
         if (!resourceFieldQueueRequest.canLevelUp(resourceField)) return
-        DRIVER.get("$TRAVIAN_SERVER/build.php?newdid=${buildOrderGroup.villageId}&id=${resourceField.id}")
+        DRIVER["$TRAVIAN_SERVER/build.php?newdid=${buildOrderGroup.villageId}&id=${resourceField.id}"]
         levelUpBuilding()
         LOGGER.info("${resourceFieldQueueRequest.id} queued")
     }
@@ -266,7 +266,7 @@ class BuildingQueueTask(private val villageId: Int) : RuntimeTask<BuildQueueRequ
 
     private fun getResourceFields(villageId: Int): List<BuildingSlot> {
         if (DRIVER.currentUrl != "$TRAVIAN_SERVER/dorf1.php?newdid=$villageId") {
-            DRIVER.get("$TRAVIAN_SERVER/dorf1.php?newdid=$villageId")
+            DRIVER["$TRAVIAN_SERVER/dorf1.php?newdid=$villageId"]
         }
         val resourceFieldLinks = DRIVER.findElements(
             ByXPath("//div[@id=\"resourceFieldContainer\"]/a")

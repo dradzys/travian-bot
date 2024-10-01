@@ -1,0 +1,16 @@
+[versions]
+selenium = "4.18.1"
+slf4j = "2.0.12"
+logback = "1.4.14"
+jackson = "2.16.1"
+
+[libraries]
+selenium-java = { group = "org.seleniumhq.selenium", name = "selenium-java", version.ref = "selenium" }
+slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
+logback-classic = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logback" }
+logback-core = { group = "ch.qos.logback", name = "logback-core", version.ref = "logback" }
+jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind", version.ref = "jackson" }
+jackson-kotlin = { group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin" }
+jackson-jsr310 = { group = "com.fasterxml.jackson.datatype", name = "jackson-datatype-jsr310" }
+
+[plugins]

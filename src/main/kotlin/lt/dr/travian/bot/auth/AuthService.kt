@@ -24,7 +24,7 @@ class AuthService private constructor() {
     private val loginButtonXpath = ByXPath("//*[text()=\"Login\"]")
 
     fun isUnAuthenticated(): Boolean {
-        DRIVER.get(TRAVIAN_SERVER)
+        DRIVER[TRAVIAN_SERVER]
         inputUsername()
         inputPassword()
         login()

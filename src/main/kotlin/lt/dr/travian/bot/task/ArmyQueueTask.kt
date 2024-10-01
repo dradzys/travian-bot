@@ -70,7 +70,7 @@ class ArmyQueueTask(private val villageId: Int) : RuntimeTask<ArmyQueueRequest>(
     ) {
         armyRequestByType.forEach { (buildingType, requests) ->
             LOGGER.info("Processing ArmyQueue requests for $buildingType")
-            DRIVER.get("$TRAVIAN_SERVER/dorf2.php?newdid=${villageId}")
+            DRIVER["$TRAVIAN_SERVER/dorf2.php?newdid=${villageId}"]
             val armyBuildingSlot = DRIVER.findElements(
                 ByXPath("//*[@data-name=\"${buildingType.buildingName}\"]")
             ).firstOrNull()

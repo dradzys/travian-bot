@@ -103,7 +103,7 @@ class RaidTask(private val villageId: Int) : RuntimeTask<RaidUnit>() {
     }
 
     private fun getTroopMap(villageId: Int): Map<String, Int> {
-        DRIVER.get("$TRAVIAN_SERVER/build.php?newdid=$villageId&id=39&gid=16&tt=1&filter=3")
+        DRIVER["$TRAVIAN_SERVER/build.php?newdid=$villageId&id=39&gid=16&tt=1&filter=3"]
         val troopOverviewWebElement = DRIVER.findElements(
             ByXPath("//tbody[@class=\"units last\"]/tr/td")
         )
@@ -133,7 +133,7 @@ class RaidTask(private val villageId: Int) : RuntimeTask<RaidUnit>() {
     }
 
     private fun raidVillage(raidUnit: RaidUnit, villageId: Int): Boolean {
-        DRIVER.get("$TRAVIAN_SERVER/karte.php?x=${raidUnit.x}&y=${raidUnit.y}&newdid=$villageId")
+        DRIVER["$TRAVIAN_SERVER/karte.php?x=${raidUnit.x}&y=${raidUnit.y}&newdid=$villageId"]
         val villageInfoElement = DRIVER.findElements(ById("village_info")).firstOrNull()
         villageInfoElement?.let {
             val villageTribe = villageInfoElement.findElements(
@@ -193,7 +193,7 @@ class RaidTask(private val villageId: Int) : RuntimeTask<RaidUnit>() {
 
     private fun isOasisRaidable(x: Int, y: Int, villageId: Int): Boolean {
         return kotlin.runCatching {
-            DRIVER.get("$TRAVIAN_SERVER/karte.php?x=$x&y=$y&newdid=$villageId")
+            DRIVER["$TRAVIAN_SERVER/karte.php?x=$x&y=$y&newdid=$villageId"]
             val oasisTroopElement = DRIVER.findElement(ByCssSelector("#troop_info td"))
             FLUENT_WAIT.until { oasisTroopElement.isDisplayed }
             return oasisTroopElement.text == "none"
