@@ -21,10 +21,10 @@ class AccountInfoReadTask : RescheduledTimerTask() {
     override fun isOnCoolDown(): Boolean = false
 
     override fun execute() {
-        assignPlusAccount()
         if (TRIBE == null) {
             assignTribe()
         }
+        assignPlusAccount()
     }
 
     override fun scheduleDelay(): Long {
